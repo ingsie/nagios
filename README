@@ -1,0 +1,17 @@
+nagios scripts
+=============
+
+helios (2009/2010)
+
+check_dns - Nagios check for DNS
+check_ssh_no_password_login - patched Nagios check (forked from http://derf.homelinux.org/git/chaosdorf-admin-toolkit/tree/nagios-checks/remote/check_ssh_no_password_login)
+check_cert_expire - 
+check_dns - 
+check_hddtemp.sh - 
+check_kernel - 
+check_kvm - 
+check_libs - 
+check_peering_ping - 
+check_ssh_no_password_login - 
+forcecommand - 
+README - this file

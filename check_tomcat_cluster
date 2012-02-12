@@ -1,0 +1,13 @@
+#!/bin/bash
+
+port=31182
+
+. /usr/lib/nagios/plugins/utils.sh
+
+if lsof -i -n -P | grep jsvc | grep $port | grep -q ESTABLISHED; then
+  echo "[OK]"
+  exit $STATE_OK
+else
+  echo "[CRITICAL] not connected"
+  exit $STATE_CRITICAL
+fi

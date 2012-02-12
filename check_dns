@@ -1,0 +1,82 @@
+#!/bin/bash
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+hostopts="-t a"
+
+usage() {
+  echo "$0 -H [hostname to lookup]"
+  echo
+  echo "optional:"
+  echo " -a [expected IP address]"
+  echo " -s [DNS server to use]"
+  echo " -6 to lookup AAAA record"
+  echo " -4 to lookup A record"
+  echo " -h to show this"
+}
+
+while getopts "h64H:s:a:" OPTION
+do
+  case $OPTION in
+    h)
+      usage
+      exit 0
+      ;;
+    4)
+      hostopts="-t a"
+      ;;
+    6)
+      hostopts="-t aaaa"
+      ;;
+    H)
+      host=$OPTARG
+      ;;
+    a)
+      expected=$OPTARG
+      ;;
+    s)
+      server=$OPTARG
+      ;;
+  esac
+done
+
+if [ -n "$host" ]; then
+  lookup=$(host $hostopts $host $server 2>&1)
+
+  if [ $? -eq 0 ]; then
+    error=""
+    ip=$(echo "$lookup" | tail -n1 | grep -v "has no" | sed 's/ IPv6//' | awk '{ print $4 }')
+  else
+    if echo "$lookup" | grep -q "NXDOMAIN"; then
+      error="Domain $host was not found by the server"
+    elif echo "$lookup" | grep -q "couldn't get address for "; then
+      error="$server is an invalid hostname/address"
+    else
+      error="an error occured"
+    fi
+  fi
+
+  if [ -n "$expected" ]; then
+    if [ "$expected" == "$ip" ]; then
+      echo "[OK] - $host returns $ip"
+      exit ${STATE_OK}
+    else
+      echo "[CRITICAL] - expected $expected but got $ip"
+      exit ${STATE_CRITICAL}
+    fi
+  fi
+
+  if [ -n "$ip" ] && [ -z "$error" ]; then
+    echo "[OK] - $host returns $ip"
+    exit ${STATE_OK}
+  else
+    echo "[CRITICAL] - $error"
+    exit ${STATE_CRITICAL}
+  fi
+else
+  usage
+  exit ${STATE_CRITICAL}
+fi

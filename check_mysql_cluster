@@ -1,0 +1,18 @@
+#!/bin/bash
+
+. /usr/lib/nagios/plugins/utils.sh
+
+killall -9 ndb_mgm >/dev/null 2>/dev/null
+tmpfile=`mktemp`
+ndb_mgm -e show --try-reconnect=1 > $tmpfile 2>/dev/null
+
+if grep -q "Unable to connect " $tmpfile; then
+  echo "[CRITICAL] unable to connect to mgmt"
+  exit $STATE_CRITICAL
+elif grep -q connected $tmpfile; then
+  echo "[CRITICAL] not connected: `grep connected $tmpfile | awk '{ printf "%s (%s ", $1, $7 }'`"
+  exit $STATE_CRITICAL
+else
+  echo "[OK]"
+  exit $STATE_OK
+fi

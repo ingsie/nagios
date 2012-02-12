@@ -1,0 +1,29 @@
+#!/bin/bash
+
+declare status=0
+declare hosts=0
+declare hosts_up=0
+
+ip_bin=`which ip`
+excludes="foo"
+
+for i in `$ip_bin address show | grep inet | grep peer | egrep -v "(${excludes})" | awk '{ print $7 }'`; do
+    iface="$i"
+    hosts=$(($hosts+1))
+    ip=`$ip_bin address show dev "$i" | grep inet | awk '{ print $4 }' | awk -F"/" '{ print $1 }'`
+
+    if ! ping -W2 -c1 "$ip" >/dev/null; then
+      status=1
+      down="${down}${iface} "
+    else
+      hosts_up="$(($hosts_up+1))"
+    fi
+done
+
+if [ "$status" -eq 0 ]; then
+  echo "[OK] $hosts_up of $hosts peerings are up"
+else
+  echo "[CRITICAL] $down"
+fi
+
+exit "$status"
