@@ -1,0 +1,147 @@
+#!/bin/bash
+
+declare status=0
+
+distribution=`lsb_release -is`
+release=`lsb_release -cs`
+
+if ! which lsb_release >/dev/null; then
+  status=1
+  error=""
+else
+  case "$distribution" in
+    Debian)
+      case "$release" in
+        bo)
+          status=1
+          error="EOL of $release is absolutely expired."
+        ;;
+        rex)
+          status=1
+          error="EOL of $release is absolutely expired."
+        ;;
+        buzz)
+          status=1
+          error="EOL of $release is absolutely expired."
+        ;;
+        hamm)
+          exp_date="19990309"
+        ;;
+        slink)
+          exp_date="20001030"
+        ;;
+        potato)
+          exp_date="20030630"
+        ;;
+        woody)
+          exp_date="20060630"
+        ;;
+        sarge)
+          exp_date="20080330"
+        ;;
+        etch)
+          exp_date="20100215"
+        ;;
+        lenny)
+          exp_date="20120201"
+        ;;
+        squeeze)
+          status=0
+        ;;
+        *)
+          status=1
+          error="Release ($release) unknown in script."
+        ;;
+      esac
+    ;;
+    Ubuntu)
+      case $(lsb_release -cs) in
+        warty)
+          exp_date="20060430"
+        ;;
+        hoary)
+          exp_date="20061031"
+        ;;
+        breezy)
+          exp_date="20070413"
+        ;;
+        dapper)
+          exp_date="20110601"
+        ;;
+        edgy)
+          exp_date="20080425"
+        ;;
+        feisty)
+          exp_date="20081019"
+        ;;
+        gutsy)
+          exp_date="20090418"
+        ;;
+        hardy)
+          exp_date="20130401"
+        ;;
+        intrepid)
+          exp_date="20100430"
+        ;;
+        jaunty)
+          exp_date="20101023"
+        ;;
+        karmic)
+          exp_date="20110430"
+        ;;
+        lucid)
+          exp_date="20150401"
+        ;;
+        maverick)
+          exp_date="20120401"
+        ;;
+        natty)
+          exp_date="20121001"
+        ;;
+        oneiric)
+          exp_date="20130401"
+        ;;
+        precise)
+          exp_date="20170401"
+        ;;
+        *)
+          status=1
+          error="Release ($release) unknown in script."
+        ;;
+      esac
+    ;;
+    *)
+      case $(lsb_release -sd) in
+        '"Arch Linux"')
+          status=0
+          error="ArchLinux is a rolling release distribution. So no release updates are required."
+        ;;
+        *)
+          status=1
+          error="Distribution ($distribution) unknown in script."
+        ;;
+      esac
+    ;;
+  esac
+fi
+
+if [ $status -eq 0 ]; then
+  if [ -n "$exp_date" ]; then
+    if [ "$exp_date" -lt "$(date +%Y%m%d)" ]; then
+      status=1
+      error="EOL of $release has expired ($(date -d "$exp_date" +%d.%m.%Y))."
+    else
+      error="EOL of $release has not expired ($(date -d "$exp_date" +%d.%m.%Y))."
+    fi
+  else
+    error="EOL of $release has not expired."
+  fi
+fi
+
+if [ "$status" -eq 0 ]; then
+  echo "[OK] $error"
+else
+  echo "[CRITICAL] $error"
+fi
+
+exit "$status"
