@@ -46,6 +46,9 @@ else
           exp_date="20120201"
         ;;
         squeeze)
+          exp_date="20140505"
+        ;;
+        wheezy)
           status=0
         ;;
         *)
