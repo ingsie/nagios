@@ -1,0 +1,30 @@
+#! /usr/bin/env bash
+
+NODEJS_HOMEPAGE="http://nodejs.org/download/"
+NODEJS_BIN="node"
+
+[ -n "$1" ] && NODEJS_BIN="$1"
+
+UPSTREAM_VER="$(wget -q -O - -- ${NODEJS_HOMEPAGE} | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' | sed 's/^ *//g' | sed 's/ $//g' | awk '{ print $3 }')"
+LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null)"
+
+if [ -z "$LOCAL_VER" ]; then
+  ERR_MSG="could not determine local node.js version"
+  ERR_CODE=1
+elif [ -z "$UPSTREAM_VER" ]; then
+  ERR_MSG="could not determine remote node.js version"
+  ERR_CODE=1
+else
+  if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+    ERR_MSG="local node.js is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER})"
+    ERR_CODE=2
+  fi
+fi
+
+if [ "$ERR_MSG" != "" ]; then
+  echo -e "ERROR: $ERR_MSG"
+  exit $ERR_CODE
+else
+  echo "OK: local node.js is up to date"
+  exit 0
+fi
