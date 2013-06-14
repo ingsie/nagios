@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ ! -f /etc/rkhunter.conf ]; then
+  error="rkhunter.conf not found. So probably rkhunter is not installed!"
+  status=1
+else
+  error="rkhunter.conf found. So rkhunter is installed."
+  status=0
+fi
+
+if [ "$status" -eq 0 ]; then
+  echo "[OK] $error"
+else
+  echo "[CRITICAL] $error"
+fi
+
+exit "$status"
