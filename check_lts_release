@@ -1,150 +1,150 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
-declare status=0
+declare ERR_CODE=0
 
 if ! which lsb_release >/dev/null; then
-  status=3
-  error=""
+  ERR_CODE=3
+  ERR_MSG=""
 else
-  distribution="$(lsb_release -is)"
-  release="$(lsb_release -cs)"
+  DISTRIBUTION="$(lsb_release -is)"
+  RELEASE="$(lsb_release -cs)"
 
-  case "$distribution" in
+  case "$DISTRIBUTION" in
     Debian)
-      case "$release" in
+      case "$RELEASE" in
         bo)
-          status=2
-          error="EOL of $release is absolutely expired."
+          ERR_CODE=2
+          ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         rex)
-          status=2
-          error="EOL of $release is absolutely expired."
+          ERR_CODE=2
+          ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         buzz)
-          status=2
-          error="EOL of $release is absolutely expired."
+          ERR_CODE=2
+          ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         hamm)
-          exp_date="19990309"
+          EXPIRE_DATE="19990309"
         ;;
         slink)
-          exp_date="20001030"
+          EXPIRE_DATE="20001030"
         ;;
         potato)
-          exp_date="20030630"
+          EXPIRE_DATE="20030630"
         ;;
         woody)
-          exp_date="20060630"
+          EXPIRE_DATE="20060630"
         ;;
         sarge)
-          exp_date="20080330"
+          EXPIRE_DATE="20080330"
         ;;
         etch)
-          exp_date="20100215"
+          EXPIRE_DATE="20100215"
         ;;
         lenny)
-          exp_date="20120201"
+          EXPIRE_DATE="20120201"
         ;;
         squeeze)
-          exp_date="20140505"
+          EXPIRE_DATE="20140505"
         ;;
         wheezy)
-          status=0
+          ERR_CODE=0
         ;;
         *)
-          status=3
-          error="Release ($release) unknown in script."
+          ERR_CODE=3
+          ERR_MSG="Release ($RELEASE) unknown in script."
         ;;
       esac
     ;;
     Ubuntu)
       case $(lsb_release -cs) in
         warty)
-          exp_date="20060430"
+          EXPIRE_DATE="20060430"
         ;;
         hoary)
-          exp_date="20061031"
+          EXPIRE_DATE="20061031"
         ;;
         breezy)
-          exp_date="20070413"
+          EXPIRE_DATE="20070413"
         ;;
         dapper)
-          exp_date="20110601"
+          EXPIRE_DATE="20110601"
         ;;
         edgy)
-          exp_date="20080425"
+          EXPIRE_DATE="20080425"
         ;;
         feisty)
-          exp_date="20081019"
+          EXPIRE_DATE="20081019"
         ;;
         gutsy)
-          exp_date="20090418"
+          EXPIRE_DATE="20090418"
         ;;
         hardy)
-          exp_date="20130401"
+          EXPIRE_DATE="20130401"
         ;;
         intrepid)
-          exp_date="20100430"
+          EXPIRE_DATE="20100430"
         ;;
         jaunty)
-          exp_date="20101023"
+          EXPIRE_DATE="20101023"
         ;;
         karmic)
-          exp_date="20110430"
+          EXPIRE_DATE="20110430"
         ;;
         lucid)
-          exp_date="20150401"
+          EXPIRE_DATE="20150401"
         ;;
         maverick)
-          exp_date="20120401"
+          EXPIRE_DATE="20120401"
         ;;
         natty)
-          exp_date="20121001"
+          EXPIRE_DATE="20121001"
         ;;
         oneiric)
-          exp_date="20130401"
+          EXPIRE_DATE="20130401"
         ;;
         precise)
-          exp_date="20170401"
+          EXPIRE_DATE="20170401"
         ;;
         *)
-          status=3
-          error="Release ($release) unknown in script."
+          ERR_CODE=3
+          ERR_MSG="Release ($RELEASE) unknown in script."
         ;;
       esac
     ;;
     *)
       case $(lsb_release -sd) in
         '"Arch Linux"')
-          status=0
-          error="ArchLinux is a rolling release distribution. So no release updates are required."
+          ERR_CODE=0
+          ERR_MSG="ArchLinux is a rolling release distribution. So no release updates are required."
         ;;
         *)
-          status=3
-          error="Distribution ($distribution) unknown in script."
+          ERR_CODE=3
+          ERR_MSG="Distribution ($DISTRIBUTION) unknown in script."
         ;;
       esac
     ;;
   esac
 fi
 
-if [ $status -eq 0 ]; then
-  if [ -n "$exp_date" ]; then
-    if [ "$exp_date" -lt "$(date +%Y%m%d)" ]; then
-      status=2
-      error="EOL of $release has expired ($(date -d "$exp_date" +%d.%m.%Y))."
+if [ $ERR_CODE -eq 0 ]; then
+  if [ -n "$EXPIRE_DATE" ]; then
+    if [ "$EXPIRE_DATE" -lt "$(date +%Y%m%d)" ]; then
+      ERR_CODE=2
+      ERR_MSG="EOL of $RELEASE has expired ($(date -d "$EXPIRE_DATE" +%d.%m.%Y))."
     else
-      error="EOL of $release has not expired ($(date -d "$exp_date" +%d.%m.%Y))."
+      ERR_MSG="EOL of $RELEASE has not expired ($(date -d "$EXPIRE_DATE" +%d.%m.%Y))."
     fi
   else
-    error="EOL of $release has not expired."
+    ERR_MSG="EOL of $RELEASE has not expired."
   fi
 fi
 
-if [ "$status" -eq 0 ]; then
-  echo "[OK] $error"
+if [ "$ERR_CODE" -eq 0 ]; then
+  echo "[OK] ${ERR_MSG}"
 else
-  echo "[CRITICAL] $error"
+  echo "[CRITICAL] ${ERR_MSG}"
 fi
 
-exit "$status"
+exit "$ERR_CODE"
