@@ -1,17 +1,17 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 if [ ! -f /etc/rkhunter.conf ]; then
-  error="rkhunter.conf not found. So probably rkhunter is not installed!"
-  status=1
+  ERR_MSG="rkhunter.conf not found. So probably rkhunter is not installed!"
+  ERR_CODE=1
 else
-  error="rkhunter.conf found. So rkhunter is installed."
-  status=0
+  ERR_MSG="rkhunter.conf found. So rkhunter is installed."
+  ERR_CODE=0
 fi
 
-if [ "$status" -eq 0 ]; then
-  echo "[OK] $error"
+if [ $ERR_CODE -eq 0 ]; then
+  echo "OK: $ERR_MSG"
 else
-  echo "[CRITICAL] $error"
+  echo "ERROR: $ERR_MSG"
 fi
 
-exit "$status"
+exit $ERR_CODE
