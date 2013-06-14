@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
