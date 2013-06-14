@@ -2,26 +2,26 @@
 
 declare status=0
 
-distribution=`lsb_release -is`
-release=`lsb_release -cs`
-
 if ! which lsb_release >/dev/null; then
-  status=1
+  status=3
   error=""
 else
+  distribution="$(lsb_release -is)"
+  release="$(lsb_release -cs)"
+
   case "$distribution" in
     Debian)
       case "$release" in
         bo)
-          status=1
+          status=2
           error="EOL of $release is absolutely expired."
         ;;
         rex)
-          status=1
+          status=2
           error="EOL of $release is absolutely expired."
         ;;
         buzz)
-          status=1
+          status=2
           error="EOL of $release is absolutely expired."
         ;;
         hamm)
@@ -49,7 +49,7 @@ else
           status=0
         ;;
         *)
-          status=1
+          status=3
           error="Release ($release) unknown in script."
         ;;
       esac
@@ -105,7 +105,7 @@ else
           exp_date="20170401"
         ;;
         *)
-          status=1
+          status=3
           error="Release ($release) unknown in script."
         ;;
       esac
@@ -117,7 +117,7 @@ else
           error="ArchLinux is a rolling release distribution. So no release updates are required."
         ;;
         *)
-          status=1
+          status=3
           error="Distribution ($distribution) unknown in script."
         ;;
       esac
@@ -128,7 +128,7 @@ fi
 if [ $status -eq 0 ]; then
   if [ -n "$exp_date" ]; then
     if [ "$exp_date" -lt "$(date +%Y%m%d)" ]; then
-      status=1
+      status=2
       error="EOL of $release has expired ($(date -d "$exp_date" +%d.%m.%Y))."
     else
       error="EOL of $release has not expired ($(date -d "$exp_date" +%d.%m.%Y))."
