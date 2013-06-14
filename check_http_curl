@@ -5,7 +5,7 @@ STATE_OK=0
 STATE_WARNING=1
 STATE_CRITICAL=2
 
-# initicial curl parameters
+# initial curl parameters
 CURL_PARAM=""
 
 # http code expected for return code 0
