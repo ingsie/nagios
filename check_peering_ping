@@ -1,29 +1,32 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
-declare status=0
-declare hosts=0
-declare hosts_up=0
+declare ERR_CODE=0
+declare HOSTS=0
+declare HOSTS_UP=0
 
-ip_bin=`which ip`
-excludes="foo"
+IP_BIN="$(which ip)"
+declare -a EXCLUDES
 
-for i in `$ip_bin address show | grep inet | grep peer | egrep -v "(${excludes})" | awk '{ print $7 }'`; do
-    iface="$i"
-    hosts=$(($hosts+1))
-    ip=`$ip_bin address show dev "$i" | grep inet | awk '{ print $4 }' | awk -F"/" '{ print $1 }'`
+[ -f /etc/nagios/check_peering_ping.cfg ] && . /etc/nagios/check_peering_ping.cfg
 
-    if ! ping -W2 -c1 "$ip" >/dev/null; then
-      status=1
-      down="${down}${iface} "
+for INTERFACE in $($IP_BIN -o addr show | grep 'inet ' | grep ' peer ' | awk '{ print $2 }'); do
+    [[ "$(declare -p EXCLUDES)" =~ '['([0-9]+)']="'$INTERFACE'"' ]] && continue
+
+    HOSTS=$(($HOSTS+1))
+    IP_ADDRESS="$($IP_BIN -o addr show dev $INTERFACE | grep 'inet ' | awk '{ print $6 }' | awk -F'/' '{ print $1 }')"
+
+    if ! ping -W4 -c2 "$IP_ADDRESS" >/dev/null 2>&1; then
+      ERR_CODE=1
+      ERR_MSG="${ERR_MSG}${INTERFACE} "
     else
-      hosts_up="$(($hosts_up+1))"
+      HOSTS_UP=$(($HOSTS_UP+1))
     fi
 done
 
-if [ "$status" -eq 0 ]; then
-  echo "[OK] $hosts_up of $hosts peerings are up"
+if [ $ERR_CODE -eq 0 ]; then
+  echo "OK: $HOSTS_UP of $HOSTS peerings are up"
 else
-  echo "[CRITICAL] $down"
+  echo "ERROR: $ERR_MSG" | sed 's/ $//g'
 fi
 
-exit "$status"
+exit $ERR_CODE
