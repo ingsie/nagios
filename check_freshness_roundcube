@@ -1,0 +1,35 @@
+#! /usr/bin/env bash
+
+SEARCH_DIR="$1"
+
+if [ -z "$SEARCH_DIR" ]; then
+  ERR_MSG="No search directory given!"
+  ERR_CODE=1
+else
+  UPSTREAM_VER=$(curl -s http://www.roundcube.net | grep 'Download now' | grep -o '<a .*href=.*download.*>' | sed -r 's#^.*<a (.*)>([^<]+)</a>.*$#\2#' | awk '{ print $2 }')
+
+  if [ -z "$UPSTREAM_VER" ]; then
+    ERR_MSG="Could not get remote version!"
+    ERR_CODE=1
+  else
+    for file in $(find ${SEARCH_DIR} -type f -name iniset.php); do
+      if grep -q 'RCMAIL_VERSION' "$file"; then
+        dirname "$file" | grep -q '\.bu' && continue
+        LOCAL_DIR=$(dirname "$file" | sed 's#/program/include##g')
+        LOCAL_VER=$(grep RCMAIL_VERSION "$file" | awk '{ print $2 }' | sed -e "s/'//g" -e 's/)//g' -e 's/;//g')
+        if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+          ERR_CODE=2
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
+        fi
+      fi
+    done
+  fi
+fi
+
+if [ -n "$ERR_MSG" ]; then
+  echo -e "ERROR: $ERR_MSG" | sed 's/, $//g'
+  exit $ERR_CODE
+else
+  echo "OK: all local roundcube webmailer are up to date"
+  exit 0
+fi

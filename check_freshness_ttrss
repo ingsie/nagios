@@ -1,0 +1,36 @@
+#! /usr/bin/env bash
+
+SEARCH_DIR="$1"
+
+if [ -z "$SEARCH_DIR" ]; then
+  ERR_MSG="No search directory given!"
+  ERR_CODE=1
+else
+  UPSTREAM_VER=$(curl -s http://tt-rss.org/version.php | python -c "import json; import sys; data=json.load(sys.stdin); print data['version']")
+
+  if [ -z "$UPSTREAM_VER" ]; then
+    ERR_MSG="Could not get remote version!"
+    ERR_CODE=1
+  else
+    for file in $(find ${SEARCH_DIR} -type f -name functions.php); do
+      if grep -q 'http://tt-rss.org/version.php' "$file"; then
+        dirname "$file" | grep -q '\.bu' && continue
+        LOCAL_DIR=$(dirname "$file" | sed 's#/include##g')
+        LOCAL_VER=$(grep "define('VERSION" ${LOCAL_DIR}/include/version.php | awk '{ print $2 }' | sed -e "s#'##g" -e 's#);##g' -e 's#"##g' | head -n1)
+        [ -z "$LOCAL_VER" ] && continue
+        if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+          ERR_CODE=2
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
+        fi
+      fi
+    done
+  fi
+fi
+
+if [ -n "$ERR_MSG" ]; then
+  echo -e "ERROR: $ERR_MSG" | sed 's/, $//g'
+  exit $ERR_CODE
+else
+  echo "OK: all local 'Tiny Tiny RSS' are up to date"
+  exit 0
+fi
