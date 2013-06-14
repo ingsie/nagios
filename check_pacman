@@ -1,0 +1,50 @@
+#!/bin/bash
+
+export TERM=linux
+
+set -eu
+
+declare -i STATE_OK=0;
+declare -i STATE_WARNING=1;
+declare -i STATE_CRITICAL=2;
+declare -i STATE_UNKNOWN=3;
+
+declare -i WARN_LEVEL=1
+declare -i CRIT_LEVEL=3
+
+PACMAN_NAME="yaourt"
+
+PACMAN="$(which "${PACMAN_NAME}")"
+PACMAN_OPTS="-Sud --print"
+
+if [ ! -x "${PACMAN}" ]; then
+  echo "[UNKNOWN] Found no executable pacman"
+  exit ${STATE_UNKNOWN}
+fi
+
+result="$("${PACMAN}" ${PACMAN_OPTS})"
+
+declare -i lines=$(echo "${result}" | wc -l)
+lines=$((${lines} - 1))
+
+if echo "${result}" | grep "there is nothing to do" &> /dev/null; then
+  lines=0
+fi
+
+if [ ${lines} -lt 0 ]; then
+  echo "[UNKNOWN] Got unexpected zero line result"
+  exit ${STATE_UNKNOWN}
+elif [ ${lines} -eq 0 ]; then
+  echo "[OK] No updates available"
+  exit ${STATE_OK}
+elif [ ${lines} -ge ${CRIT_LEVEL} ]; then
+  echo "[CRITICAL] ${lines} updates available"
+  exit ${STATE_CRITICAL}
+elif [ ${lines} -ge ${WARN_LEVEL} ]; then
+  echo "[WARNING] ${lines} updates available"
+  exit ${STATE_WARNING}
+else
+  echo "[UNKNOWN] Something gone wrong"
+  exit ${STATE_UNKNOWN}
+fi
+
