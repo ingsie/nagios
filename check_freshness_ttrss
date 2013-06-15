@@ -37,7 +37,7 @@ fi
 if [ -n "$ERR_MSG" ]; then
   echo "ERROR: $ERR_MSG" | sed 's/, $//g'
 else
-  echo "OK: all local 'Tiny Tiny RSS' are up to date"
+  echo "OK: all local Tiny Tiny RSS are up to date"
 fi
 
 exit $ERR_CODE
