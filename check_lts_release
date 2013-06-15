@@ -1,9 +1,15 @@
 #! /usr/bin/env bash
 
-declare ERR_CODE=0
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+declare -i EXPIRE_DATE=0
 
 if ! which lsb_release >/dev/null; then
-  ERR_CODE=3
+  ERR_CODE=$STATE_UNKNOWN
   ERR_MSG=""
 else
   DISTRIBUTION="$(lsb_release -is)"
@@ -13,102 +19,102 @@ else
     Debian)
       case "$RELEASE" in
         bo)
-          ERR_CODE=2
+          ERR_CODE=$STATE_CRITICAL
           ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         rex)
-          ERR_CODE=2
+          ERR_CODE=$STATE_CRITICAL
           ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         buzz)
-          ERR_CODE=2
+          ERR_CODE=$STATE_CRITICAL
           ERR_MSG="EOL of $RELEASE is absolutely expired."
         ;;
         hamm)
-          EXPIRE_DATE="19990309"
+          EXPIRE_DATE=19990309
         ;;
         slink)
-          EXPIRE_DATE="20001030"
+          EXPIRE_DATE=20001030
         ;;
         potato)
-          EXPIRE_DATE="20030630"
+          EXPIRE_DATE=20030630
         ;;
         woody)
-          EXPIRE_DATE="20060630"
+          EXPIRE_DATE=20060630
         ;;
         sarge)
-          EXPIRE_DATE="20080330"
+          EXPIRE_DATE=20080330
         ;;
         etch)
-          EXPIRE_DATE="20100215"
+          EXPIRE_DATE=20100215
         ;;
         lenny)
-          EXPIRE_DATE="20120201"
+          EXPIRE_DATE=20120201
         ;;
         squeeze)
-          EXPIRE_DATE="20140505"
+          EXPIRE_DATE=20140505
         ;;
         wheezy)
-          ERR_CODE=0
+          ERR_CODE=$STATE_OK
         ;;
         *)
-          ERR_CODE=3
+          ERR_CODE=$STATE_UNKNOWN
           ERR_MSG="Release ($RELEASE) unknown in script."
         ;;
       esac
     ;;
     Ubuntu)
-      case $(lsb_release -cs) in
+      case "$RELEASE" in
         warty)
-          EXPIRE_DATE="20060430"
+          EXPIRE_DATE=20060430
         ;;
         hoary)
-          EXPIRE_DATE="20061031"
+          EXPIRE_DATE=20061031
         ;;
         breezy)
-          EXPIRE_DATE="20070413"
+          EXPIRE_DATE=20070413
         ;;
         dapper)
-          EXPIRE_DATE="20110601"
+          EXPIRE_DATE=20110601
         ;;
         edgy)
-          EXPIRE_DATE="20080425"
+          EXPIRE_DATE=20080425
         ;;
         feisty)
-          EXPIRE_DATE="20081019"
+          EXPIRE_DATE=20081019
         ;;
         gutsy)
-          EXPIRE_DATE="20090418"
+          EXPIRE_DATE=20090418
         ;;
         hardy)
-          EXPIRE_DATE="20130401"
+          EXPIRE_DATE=20130401
         ;;
         intrepid)
-          EXPIRE_DATE="20100430"
+          EXPIRE_DATE=20100430
         ;;
         jaunty)
-          EXPIRE_DATE="20101023"
+          EXPIRE_DATE=20101023
         ;;
         karmic)
-          EXPIRE_DATE="20110430"
+          EXPIRE_DATE=20110430
         ;;
         lucid)
-          EXPIRE_DATE="20150401"
+          EXPIRE_DATE=20150401
         ;;
         maverick)
-          EXPIRE_DATE="20120401"
+          EXPIRE_DATE=20120401
         ;;
         natty)
-          EXPIRE_DATE="20121001"
+          EXPIRE_DATE=20121001
         ;;
         oneiric)
-          EXPIRE_DATE="20130401"
+          EXPIRE_DATE=20130401
         ;;
         precise)
-          EXPIRE_DATE="20170401"
+          EXPIRE_DATE=20170401
         ;;
         *)
-          ERR_CODE=3
+          ERR_CODE=$STATE_UNKNOWN
           ERR_MSG="Release ($RELEASE) unknown in script."
         ;;
       esac
@@ -116,11 +122,11 @@ else
     *)
       case $(lsb_release -sd) in
         '"Arch Linux"')
-          ERR_CODE=0
+          ERR_CODE=$STATE_OK
           ERR_MSG="ArchLinux is a rolling release distribution. So no release updates are required."
         ;;
         *)
-          ERR_CODE=3
+          ERR_CODE=$STATE_UNKNOWN
           ERR_MSG="Distribution ($DISTRIBUTION) unknown in script."
         ;;
       esac
@@ -128,23 +134,23 @@ else
   esac
 fi
 
-if [ $ERR_CODE -eq 0 ]; then
-  if [ -n "$EXPIRE_DATE" ]; then
-    if [ "$EXPIRE_DATE" -lt "$(date +%Y%m%d)" ]; then
-      ERR_CODE=2
-      ERR_MSG="EOL of $RELEASE has expired ($(date -d "$EXPIRE_DATE" +%d.%m.%Y))."
+if [ $ERR_CODE -eq $STATE_OK -a -z "$ERR_MSG" ]; then
+  if [ $EXPIRE_DATE -gt 0 ]; then
+    if [ $EXPIRE_DATE -lt $(date +%Y%m%d) ]; then
+      ERR_CODE=$STATE_CRITICAL
+      ERR_MSG="EOL of $RELEASE has expired ($(date -d $EXPIRE_DATE +%d.%m.%Y))."
     else
-      ERR_MSG="EOL of $RELEASE has not expired ($(date -d "$EXPIRE_DATE" +%d.%m.%Y))."
+      ERR_MSG="EOL of $RELEASE has not expired ($(date -d $EXPIRE_DATE +%d.%m.%Y))."
     fi
   else
     ERR_MSG="EOL of $RELEASE has not expired."
   fi
 fi
 
-if [ $ERR_CODE -eq 0 ]; then
-  echo "[OK] ${ERR_MSG}"
+if [ $ERR_CODE -eq $STATE_OK ]; then
+  echo "OK: ${ERR_MSG}"
 else
-  echo "[CRITICAL] ${ERR_MSG}"
+  echo "CRITICAL: ${ERR_MSG}"
 fi
 
 exit $ERR_CODE
