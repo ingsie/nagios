@@ -1,13 +1,13 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 export TERM=linux
 
 set -eu
 
-declare -i STATE_OK=0;
-declare -i STATE_WARNING=1;
-declare -i STATE_CRITICAL=2;
-declare -i STATE_UNKNOWN=3;
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
 
 declare -i WARN_LEVEL=1
 declare -i CRIT_LEVEL=3
@@ -47,4 +47,3 @@ else
   echo "[UNKNOWN] Something gone wrong"
   exit ${STATE_UNKNOWN}
 fi
-
