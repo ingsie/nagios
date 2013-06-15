@@ -1,8 +1,13 @@
 #! /usr/bin/env bash
 
-declare ERR_CODE=0
-declare HOSTS=0
-declare HOSTS_UP=0
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+declare -i HOSTS=0
+declare -i HOSTS_UP=0
 
 IP_BIN="$(which ip)"
 declare -a EXCLUDES
@@ -16,7 +21,7 @@ for INTERFACE in $($IP_BIN -o addr show | grep 'inet ' | grep ' peer ' | awk '{ 
     IP_ADDRESS="$($IP_BIN -o addr show dev $INTERFACE | grep 'inet ' | awk '{ print $6 }' | awk -F'/' '{ print $1 }')"
 
     if ! ping -W4 -c2 "$IP_ADDRESS" >/dev/null 2>&1; then
-      ERR_CODE=1
+      ERR_CODE=$STATE_CRITICAL
       ERR_MSG="${ERR_MSG}${INTERFACE} "
     else
       HOSTS_UP=$(($HOSTS_UP+1))
