@@ -141,10 +141,10 @@ if [ $ERR_CODE -eq 0 ]; then
   fi
 fi
 
-if [ "$ERR_CODE" -eq 0 ]; then
+if [ $ERR_CODE -eq 0 ]; then
   echo "[OK] ${ERR_MSG}"
 else
   echo "[CRITICAL] ${ERR_MSG}"
 fi
 
-exit "$ERR_CODE"
+exit $ERR_CODE
