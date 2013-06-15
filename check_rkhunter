@@ -13,7 +13,7 @@ else
   ERR_CODE=$STATE_OK
 fi
 
-if [ $ERR_CODE -eq 0 ]; then
+if [ $ERR_CODE -eq $STATE_OK ]; then
   echo "OK: $ERR_MSG"
 else
   echo "ERROR: $ERR_MSG"

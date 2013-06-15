@@ -28,7 +28,7 @@ for INTERFACE in $($IP_BIN -o addr show | grep 'inet ' | grep ' peer ' | awk '{ 
     fi
 done
 
-if [ $ERR_CODE -eq 0 ]; then
+if [ $ERR_CODE -eq $STATE_OK ]; then
   echo "OK: $HOSTS_UP of $HOSTS peerings are up"
 else
   echo "ERROR: $ERR_MSG" | sed 's/ $//g'
