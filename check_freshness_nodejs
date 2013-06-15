@@ -1,5 +1,10 @@
 #! /usr/bin/env bash
 
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
 NODEJS_HOMEPAGE="http://nodejs.org/download/"
 NODEJS_BIN="node"
 
@@ -9,22 +14,22 @@ UPSTREAM_VER="$(wget -q -O - -- ${NODEJS_HOMEPAGE} | grep 'Current version:' | s
 LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null)"
 
 if [ -z "$LOCAL_VER" ]; then
-  ERR_MSG="could not determine local node.js version"
-  ERR_CODE=1
+  ERR_MSG="Could not determine local node.js version!"
+  ERR_CODE=$STATE_UNKNOWN
 elif [ -z "$UPSTREAM_VER" ]; then
-  ERR_MSG="could not determine remote node.js version"
-  ERR_CODE=1
+  ERR_MSG="Could not determine remote node.js version!"
+  ERR_CODE=$STATE_UNKNOWN
 else
   if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
-    ERR_MSG="local node.js is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER})"
-    ERR_CODE=2
+    ERR_MSG="Local node.js is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER})"
+    ERR_CODE=$STATE_CRITICAL
   fi
 fi
 
-if [ "$ERR_MSG" != "" ]; then
+if [ -n "$ERR_MSG" ]; then
   echo -e "ERROR: $ERR_MSG"
   exit $ERR_CODE
 else
-  echo "OK: local node.js is up to date"
-  exit 0
+  echo "OK: Local node.js is up to date"
+  exit $STATE_OK
 fi

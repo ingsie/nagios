@@ -1,16 +1,21 @@
 #! /usr/bin/env bash
 
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
 SEARCH_DIR="$1"
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
-  ERR_CODE=1
+  ERR_CODE=$STATE_UNKNOWN
 else
   UPSTREAM_VER=$(curl -s http://www.cmsmadesimple.org | grep 'Download ' | grep -o '<a .*href=.*downloads.*>' | sed -r 's#^.*<a href="([^"]+)">([^<]+)</a>.*$#\2#' | awk '{ print $2 }')
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote CMS Made Simple version!"
-    ERR_CODE=1
+    ERR_CODE=$STATE_UNKNOWN
   else
     for cms in $(find ${SEARCH_DIR} -type f -name version.php); do
       if grep -q 'CMS_VERSION' "$cms"; then
@@ -18,7 +23,7 @@ else
         LOCAL_DIR=$(dirname "$cms")
         LOCAL_VER=$(cat "$cms" | grep 'CMS_VERSION = ' | awk '{ print $3 }' | sed -e 's/"//g' -e 's/;//g')
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
-          ERR_CODE=2
+          ERR_CODE=$STATE_CRITICAL
           ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
         fi
       fi
@@ -31,5 +36,5 @@ if [ -n "$ERR_MSG" ]; then
   exit $ERR_CODE
 else
   echo "OK: all local CMS Made Simple are up to date"
-  exit 0
+  exit $STATE_OK
 fi
