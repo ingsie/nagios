@@ -5,6 +5,8 @@ declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
 declare -i STATE_UNKNOWN=3
 
+declare -i ERR_CODE=$STATE_OK
+
 SEARCH_DIR="$1"
 
 if [ -z "$SEARCH_DIR" ]; then
@@ -32,9 +34,9 @@ else
 fi
 
 if [ -n "$ERR_MSG" ]; then
-  echo -e "ERROR: $ERR_MSG" | sed 's/, $//g'
-  exit $ERR_CODE
+  echo "ERROR: $ERR_MSG" | sed 's/, $//g'
 else
   echo "OK: all local roundcube webmailer are up to date"
-  exit $STATE_OK
 fi
+
+exit $ERR_CODE

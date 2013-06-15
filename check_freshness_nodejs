@@ -5,6 +5,8 @@ declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
 declare -i STATE_UNKNOWN=3
 
+declare -i ERR_CODE=$STATE_OK
+
 NODEJS_HOMEPAGE="http://nodejs.org/download/"
 NODEJS_BIN="node"
 
@@ -27,9 +29,9 @@ else
 fi
 
 if [ -n "$ERR_MSG" ]; then
-  echo -e "ERROR: $ERR_MSG"
-  exit $ERR_CODE
+  echo "ERROR: $ERR_MSG"
 else
   echo "OK: Local node.js is up to date"
-  exit $STATE_OK
 fi
+
+exit $ERR_CODE
