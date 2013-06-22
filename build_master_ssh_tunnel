@@ -1,10 +1,11 @@
-#!/bin/sh
+#! /usr/bin/env sh
 
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
-STATE_DEPENDENT=4
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
 
 HOSTNAME="$1"
 PORT="$2"
@@ -13,27 +14,30 @@ SOCKET="/var/run/icinga/ssh@${HOSTNAME}:${PORT}.sock"
 KEY="/etc/icinga/nagios_sshkey"
 
 if [ $# -lt 2 ]; then
-    echo "usage: $(basename "$0") <host> <port>"
-    exit
+  echo "usage: $(basename "$0") <host> <port>"
+  exit
 fi
 
 if [ -S "${SOCKET}" ]; then
-    echo "OK - Tunnel exists"
-    exit $STATE_OK
+  ERR_MSG="OK - Tunnel exists"
+  ERR_CODE=$STATE_OK
 elif [ ! -f "${KEY}" ]; then
-    echo "CRITICAL - keyfile missing: ${KEY}"
-    exit $STATE_CRITICAL
+  ERR_MSG="CRITICAL - keyfile missing: ${KEY}"
+  ERR_CODE=$STATE_CRITICAL
 elif [ ! -d "$(dirname "${SOCKET}")" ]; then
-    echo "CRITICAL - socket directory missing: $(dirname "${SOCKET}")"
-    exit $STATE_CRITICAL
+  ERR_MSG="CRITICAL - socket directory missing: $(dirname "${SOCKET}")"
+  ERR_CODE=$STATE_CRITICAL
 else
-    # start ssh with all file descriptors closed/nulled so that the check doesn't hang
-    /usr/bin/ssh -nNMf -p "${PORT}" -i "${KEY}" -F "${CONFIG}" "${HOSTNAME}" >/dev/null 2>&1 3>&- 4>&- 5>&- 6>&-
-    if [ $? -ne 0 ] ; then
-        echo "CRITICAL - Tunnel creation failed"
-        exit $STATE_CRITICAL
-    else
-        echo "OK - Tunnel established"
-        exit $STATE_OK
-    fi
+  # start ssh with all file descriptors closed/nulled so that the check doesn't hang
+  /usr/bin/ssh -nNMf -p "${PORT}" -i "${KEY}" -F "${CONFIG}" "${HOSTNAME}" >/dev/null 2>&1 3>&- 4>&- 5>&- 6>&-
+  if [ $? -ne 0 ] ; then
+    ERR_MSG="CRITICAL - Tunnel creation failed"
+    ERR_CODE=$STATE_CRITICAL
+  else
+    ERR_MSG="OK - Tunnel established"
+    ERR_CODE=$STATE_OK
+  fi
 fi
+
+echo "$ERR_MSG"
+exit $ERR_CODE
