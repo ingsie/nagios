@@ -5,8 +5,15 @@ declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
 declare -i STATE_UNKNOWN=3
 
-killall -9 ndb_mgm >/dev/null 2>&1
 TMP_FILE="$(mktemp)"
+
+function on_exit() {
+  rm -f "$TMP_FILE"
+}
+
+trap on_exit EXIT
+
+killall -9 ndb_mgm >/dev/null 2>&1
 ndb_mgm -e show --try-reconnect=1 > $TMP_FILE 2>/dev/null
 
 if grep -q "Unable to connect " $TMP_FILE; then
