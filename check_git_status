@@ -8,10 +8,10 @@
 # > nagios  ALL=(root) NOPASSWD: /usr/local/lib/nagios/plugins/check_git_status /etc
 # should do the job.
 
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
 
 GIT="/usr/bin/git"
 
