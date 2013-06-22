@@ -23,7 +23,7 @@ else
       if grep -q 'http://tt-rss.org/version.php' "$file"; then
         dirname "$file" | grep -q '\.bu' && continue
         LOCAL_DIR=$(dirname "$file" | sed 's#/include##g')
-        LOCAL_VER=$(grep "define('VERSION" ${LOCAL_DIR}/include/version.php | awk '{ print $2 }' | sed -e "s#'##g" -e 's#);##g' -e 's#"##g' | head -n1)
+        LOCAL_VER=$(grep "define('VERSION" ${LOCAL_DIR}/include/version.php | head -n1 | cut -d "'" -f 4)
         [ -z "$LOCAL_VER" ] && continue
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL

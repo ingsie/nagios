@@ -23,7 +23,7 @@ else
       if grep -q 'CMS_VERSION' "$cms"; then
         dirname "$cms" | grep -q '\.bu' && continue
         LOCAL_DIR=$(dirname "$cms")
-        LOCAL_VER=$(cat "$cms" | grep 'CMS_VERSION = ' | awk '{ print $3 }' | sed -e 's/"//g' -e 's/;//g')
+        LOCAL_VER=$(grep 'CMS_VERSION = ' "$cms" | cut -d '"' -f 2)
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL
           ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "

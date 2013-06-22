@@ -23,7 +23,7 @@ else
       if grep -q 'RCMAIL_VERSION' "$file"; then
         dirname "$file" | grep -q '\.bu' && continue
         LOCAL_DIR=$(dirname "$file" | sed 's#/program/include##g')
-        LOCAL_VER=$(grep RCMAIL_VERSION "$file" | awk '{ print $2 }' | sed -e "s/'//g" -e 's/)//g' -e 's/;//g')
+        LOCAL_VER=$(grep "define('RCMAIL_VERSION'" "$file" | cut -d "'" -f 4)
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL
           ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
