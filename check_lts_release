@@ -10,7 +10,7 @@ declare -i EXPIRE_DATE=0
 
 if ! which lsb_release >/dev/null; then
   ERR_CODE=$STATE_UNKNOWN
-  ERR_MSG=""
+  ERR_MSG="lsb_release not found"
 else
   DISTRIBUTION="$(lsb_release -is)"
   RELEASE="$(lsb_release -cs)"
