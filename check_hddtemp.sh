@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 #
 # USAGE:
 # ./check_hddtemp.sh <device> <warn> <crit>
@@ -10,10 +10,10 @@
 #
 # Version 1.0
 
-OK=0
-WARNING=1
-CRITICAL=2
-UNKNOWN=3
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
 
 function usage() {
 	echo "Usage: ./check_hddtemp.sh <device> <warn> <crit>"
@@ -23,7 +23,7 @@ function check_root() {
 	# make sure script is running as root
 	if [ `whoami` != root ]; then
 		echo "UNKNOWN: please make sure script is running as root"
-		exit $UNKNOWN
+		exit $STATE_UNKNOWN
 	fi
 }
 
@@ -31,7 +31,7 @@ function check_arg() {
 	# make sure you supplied all 3 arguments
 	if [ $# -ne 3 ]; then
 		usage
-		exit $OK
+		exit $STATE_OK
 	fi
 }
 
@@ -39,7 +39,7 @@ function check_device() {
 	# make sure device is a special block
 	if [ ! -b $DEVICE ];then
 		echo "UNKNOWN: $DEVICE is not a block special file"
-		exit $UNKNOWN
+		exit $STATE_UNKNOWN
 	fi
 }
 
@@ -47,10 +47,9 @@ function check_warn_vs_crit() {
 	# make sure CRIT is larger than WARN
 	if [ $WARN -ge $CRIT ];then
 		echo "UNKNOWN: WARN value may not be greater than or equal the CRIT value"
-		exit $UNKNOWN
+		exit $STATE_UNKNOWN
 	fi
 }
-
 
 function init() {
 	check_root
@@ -63,19 +62,19 @@ function get_hddtemp() {
 	# gets temperature and stores it in $HEAT
 	# and make sure we get a numeric output
 	if [ -x $HDDTEMP ];then
-		HEAT=`$HDDTEMP $DEVICE -n 2>/dev/null`
+		HEAT=$($HDDTEMP $DEVICE -n 2>/dev/null)
 		case "$HEAT" in
 		[0-9]* )
 			echo "do nothing" > /dev/null
 			;;
 		* )
 			echo "OK: Could not get temperature from: $DEVICE"
-			exit $OK
+			exit $STATE_OK
 			;;
 		esac
 	else
 		echo "UNKNOWN: cannot execute $HDDTEMP"
-		exit $UNKNOWN
+		exit $STATE_UNKNOWN
 	fi
 }
 
@@ -83,18 +82,17 @@ function check_heat() {
 	# checks temperature and replies according to $CRIT and $WARN
 	if [ $HEAT -lt $WARN ];then
 		echo "OK: Temperature is below warn treshold ($DEVICE is $HEAT)"
-		exit $OK
+		exit $STATE_OK
 	elif [ $HEAT -lt $CRIT ];then
 		echo "WARNING: Temperature is above warn treshold ($DEVICE is $HEAT)"
-		exit $WARNING
+		exit $STATE_WARNING
 	elif [ $HEAT -ge $CRIT ];then
 		echo "CRITICAL: Temperature is above crit treshold ($DEVICE is $HEAT)"
-		exit $CRITICAL
+		exit $STATE_CRITICAL
 	else
 		echo "UNKNOWN: This error message should never occur, if it does happen anyway, get a new cup of coffee and fix the code :)"
-		exit $UNKNOWN
+		exit $STATE_UNKNOWN
 	fi
-		
 }
 
 # -- Main -- #
