@@ -11,6 +11,10 @@ declare -a UPSTREAM_VER
 
 SEARCH_DIR="$1"
 
+OLD_IFS="${IFS}"
+IFS="
+${IFS}"
+
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
@@ -21,29 +25,36 @@ else
     ERR_MSG="Could not get remote version!"
     ERR_CODE=$STATE_UNKNOWN
   else
-    for file in $(find ${SEARCH_DIR} -type f -name DefaultSettings.php); do
+    for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name DefaultSettings.php -print \)); do
       LOCAL_DIR=$(dirname "$file" | sed 's#/includes##g')
       if grep -q '^\$wgVersion' $file; then
-        dirname "$file" | grep -q '\.bu' && continue
         LOCAL_VER=$(grep '^\$wgVersion' $file | cut -d "'" -f 2)
-        LOCAL_MAJ_VER=$(echo "$LOCAL_VER" | awk -F \. '{ print $1"."$2 }')
+        LOCAL_MAJ_VER=$(echo "$LOCAL_VER" | cut -d '.' -f 1-2)
 
-        echo ${UPSTREAM_VER[@]} | sed 's# #\n#g' | grep -q $LOCAL_VER && continue
+        echo "${UPSTREAM_VER[*]}" | grep -q $LOCAL_VER && continue
 
-        UP_VER=$(echo ${UPSTREAM_VER[@]} | sed 's# #\n#g' | grep $LOCAL_MAJ_VER)
-        [ -z $UP_VER ] && UP_VER=$(echo ${UPSTREAM_VER[@]} | sed 's# #\n#g' | head -n1)
+        UP_VER=$(echo "${UPSTREAM_VER[*]}" | grep $LOCAL_MAJ_VER)
+        [ -z $UP_VER ] && UP_VER=$(echo "${UPSTREAM_VER[*]}" | head -n1)
 
         ERR_CODE=$STATE_CRITICAL
-        ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UP_VER}), "
+        ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER} vs. ${UP_VER}), "
       fi
     done
   fi
 fi
 
-if [ -n "$ERR_MSG" ]; then
-  echo "ERROR: $ERR_MSG" | sed 's/, $//g'
-else
-  echo "OK: all local MediaWiki are up to date"
-fi
+IFS="${OLD_IFS}"
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local MediaWiki are up to date (${UPSTREAM_VER[*]})"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Not up to date: ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
 
 exit $ERR_CODE
