@@ -19,24 +19,29 @@ else
     ERR_MSG="Could not get remote version!"
     ERR_CODE=$STATE_UNKNOWN
   else
-    for file in $(find ${SEARCH_DIR} -type f -name wp-config.php); do
+    for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name wp-config.php -print \)); do
       LOCAL_DIR=$(dirname "$file")
       if grep -q '^\$wp_version' ${LOCAL_DIR}/wp-includes/version.php; then
-        dirname "$file" | grep -q '\.bu' && continue
         LOCAL_VER=$(grep '^\$wp_version' ${LOCAL_DIR}/wp-includes/version.php | cut -d "'" -f 2)
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL
-          ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER}), "
         fi
       fi
     done
   fi
 fi
 
-if [ -n "$ERR_MSG" ]; then
-  echo "ERROR: $ERR_MSG" | sed 's/, $//g'
-else
-  echo "OK: all local WordPress are up to date"
-fi
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local WordPress are up to date (${UPSTREAM_VER})"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
 
 exit $ERR_CODE
