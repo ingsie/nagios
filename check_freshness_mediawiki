@@ -9,6 +9,7 @@ declare -i ERR_CODE=$STATE_OK
 
 declare -a UPSTREAM_VER
 
+SOFTWARE_NAME="MediaWiki"
 SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
@@ -47,7 +48,7 @@ IFS="${OLD_IFS}"
 
 case $ERR_CODE in
   $STATE_OK)
-    echo "OK: all local MediaWiki are up to date (${UPSTREAM_VER[*]})"
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER[*]})"
     ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"

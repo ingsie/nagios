@@ -7,31 +7,40 @@ declare -i STATE_UNKNOWN=3
 
 declare -i ERR_CODE=$STATE_OK
 
-NODEJS_HOMEPAGE="http://nodejs.org/download/"
-NODEJS_BIN="node"
+SOFTWARE_NAME="node.js"
+[ -n "$1" ] && NODEJS_BIN="$1" || NODEJS_BIN="$(which node)"
 
-[ -n "$1" ] && NODEJS_BIN="$1"
-
-UPSTREAM_VER="$(wget -q -O - -- ${NODEJS_HOMEPAGE} | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' | sed 's/^ *//g' | sed 's/ $//g' | awk '{ print $3 }')"
-LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null)"
-
-if [ -z "$LOCAL_VER" ]; then
-  ERR_MSG="Could not determine local node.js version!"
-  ERR_CODE=$STATE_UNKNOWN
-elif [ -z "$UPSTREAM_VER" ]; then
-  ERR_MSG="Could not determine remote node.js version!"
+if [ -z "$NODEJS_BIN" ]; then
+  ERR_MSG="Could not find local ${SOFTWARE_NAME}!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
-    ERR_MSG="Local node.js is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER})"
-    ERR_CODE=$STATE_CRITICAL
+  UPSTREAM_VER=$(curl -s http://nodejs.org/download/ | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' -e 's/^ *//g' -e 's/ $//g' | cut -d ' ' -f 3)
+  LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null)"
+
+  if [ -z "$LOCAL_VER" ]; then
+    ERR_MSG="Could not get local version!"
+    ERR_CODE=$STATE_UNKNOWN
+  elif [ -z "$UPSTREAM_VER" ]; then
+    ERR_MSG="Could not get remote version!"
+    ERR_CODE=$STATE_UNKNOWN
+  else
+    if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+      ERR_MSG="${NODEJS_BIN} (${LOCAL_VER})"
+      ERR_CODE=$STATE_CRITICAL
+    fi
   fi
 fi
 
-if [ -n "$ERR_MSG" ]; then
-  echo "ERROR: $ERR_MSG"
-else
-  echo "OK: Local node.js is up to date"
-fi
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
 
 exit $ERR_CODE

@@ -7,13 +7,14 @@ declare -i STATE_UNKNOWN=3
 
 declare -i ERR_CODE=$STATE_OK
 
+SOFTWARE_NAME="WordPress"
 SEARCH_DIR="$1"
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -s http://api.wordpress.org/core/version-check/1.5/ | head -n 4 | tail -n 1)
+  UPSTREAM_VER=$(curl -s http://api.wordpress.org/core/version-check/1.5/ | head -n4 | tail -n1)
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"
@@ -34,7 +35,7 @@ fi
 
 case $ERR_CODE in
   $STATE_OK)
-    echo "OK: all local WordPress are up to date (${UPSTREAM_VER})"
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
     ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"
