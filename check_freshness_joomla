@@ -14,7 +14,7 @@ SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
 IFS="
-${IFS}"
+"
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
@@ -26,7 +26,6 @@ else
     ERR_MSG="Could not get remote version!"
     ERR_CODE=$STATE_UNKNOWN
   else
-#    for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name version.php -print \)); do
     for file in $(find /var/www -type d -name '*.bu' -prune -o \( -path '*/libraries/joomla/*' -o -path '*/libraries/cms/version*' -o -path '*/includes/*' \) -type f -name version.php -print); do
       LOCAL_DIR=$(dirname "$file" | sed -e 's#/libraries/joomla##g' -e 's#/libraries/cms/version##g' -e 's#/includes##g')
       grep -q 'Joomla' "$file" || continue

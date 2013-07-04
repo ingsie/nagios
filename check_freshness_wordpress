@@ -10,6 +10,10 @@ declare -i ERR_CODE=$STATE_OK
 SOFTWARE_NAME="WordPress"
 SEARCH_DIR="$1"
 
+OLD_IFS="${IFS}"
+IFS="
+"
+
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
