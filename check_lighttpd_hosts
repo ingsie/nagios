@@ -1,0 +1,60 @@
+#! /usr/bin/env bash
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+
+declare -a EXCLUDE_HTTP
+declare -a EXCLUDE_DNS
+
+LIGHTTPD_BIN="$(which lighttpd 2>/dev/null)"
+
+if [ -z "$1" ]; then
+  ERR_MSG="No expected IP-address given"
+  ERR_CODE=$STATE_UNKNOWN
+elif [ ! -x /usr/lib/nagios/plugins/check_http ]; then
+  ERR_MSG="check_http not found"
+  ERR_CODE=$STATE_UNKNOWN
+elif [ ! -x /usr/lib/nagios/plugins/check_dns ]; then
+  ERR_MSG="check_dns not found"
+  ERR_CODE=$STATE_UNKNOWN
+elif [ -z "${LIGHTTPD_BIN}" ]; then
+  ERR_MSG="lighttpd binary not found"
+  ERR_CODE=$STATE_UNKNOWN
+else
+  [ -n "$2" ] && IFS=',' read -a EXCLUDE_HTTP <<< "$2"
+  [ -n "$3" ] && IFS=',' read -a EXCLUDE_DNS <<< "$3"
+
+  for host in $(lighttpd -p -f /etc/lighttpd/lighttpd.conf | grep -hv '#' | grep 'HTTP\["host"\] == ' | cut -d'"' -f4 | sort -u); do
+    if ! echo "${EXCLUDE_HTTP[*]}" | grep -q $host; then
+      if ! /usr/lib/nagios/plugins/check_http -H "$host" -u / >/dev/null 2>&1; then
+        ERR_MSG="${ERR_MSG}$host does not reply, "
+        ERR_CODE=$STATE_CRITICAL
+      fi
+    fi
+
+    if ! echo "${EXCLUDE_DNS[*]}" | grep -q $host; then
+      if ! /usr/lib/nagios/plugins/check_dns -H "$host" -a "$1" >/dev/null 2>&1; then
+        ERR_MSG="${ERR_MSG}$host does not resolve correctly, "
+        ERR_CODE=$STATE_CRITICAL
+      fi
+    fi
+  done
+fi
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: All hosts replied correctly."
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
+
+exit $ERR_CODE
