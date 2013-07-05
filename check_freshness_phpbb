@@ -1,0 +1,52 @@
+#! /usr/bin/env bash
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+
+SOFTWARE_NAME="phpBB"
+SEARCH_DIR="$1"
+
+OLD_IFS="${IFS}"
+IFS="
+"
+
+if [ -z "$SEARCH_DIR" ]; then
+  ERR_MSG="No search directory given!"
+  ERR_CODE=$STATE_UNKNOWN
+else
+  UPSTREAM_VER=$(curl -s http://version.phpbb.com/phpbb/30x.txt | head -n1)
+
+  if [ -z "$UPSTREAM_VER" ]; then
+    ERR_MSG="Could not get remote version!"
+    ERR_CODE=$STATE_UNKNOWN
+  else
+    for file in $(find ${SEARCH_DIR} \( -type d \( -name '*.bu' -o -path '*/install*/update/*' \) -prune \) -o \( -type f -path '*/includes/constants.php' -print \)); do
+      LOCAL_DIR="$(dirname $(dirname "$file"))"
+      if grep -q "^define('PHPBB_VERSION', " ${LOCAL_DIR}/includes/constants.php; then
+        LOCAL_VER=$(grep "^define('PHPBB_VERSION', " ${LOCAL_DIR}/includes/constants.php | cut -d "'" -f 4)
+        if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+          ERR_CODE=$STATE_CRITICAL
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER}), "
+        fi
+      fi
+    done
+  fi
+fi
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
+
+exit $ERR_CODE
