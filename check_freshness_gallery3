@@ -1,0 +1,55 @@
+#! /usr/bin/env bash
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+
+SOFTWARE_NAME="Gallery3"
+SEARCH_DIR="$1"
+
+OLD_IFS="${IFS}"
+IFS="
+"
+
+if [ -z "$SEARCH_DIR" ]; then
+  ERR_MSG="No search directory given!"
+  ERR_CODE=$STATE_UNKNOWN
+else
+  UPSTREAM_VER=$(curl -s http://galleryproject.org/versioncheck/gallery3 | grep 'release_version=' | cut -d '=' -f 2)
+
+  if [ -z "$UPSTREAM_VER" ]; then
+    ERR_MSG="Could not get remote version!"
+    ERR_CODE=$STATE_UNKNOWN
+  else
+    for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name gallery.php -print \)); do
+      LOCAL_DIR="$(dirname $file | sed 's#/modules/gallery/helpers##g')"
+      if grep -q 'Gallery - a web based photo album viewer and editor' "$file" 2>/dev/null; then
+        LOCAL_VER=$(grep 'VERSION ' "$file" | cut -d '"' -f 2)
+
+        if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
+          ERR_CODE=$STATE_CRITICAL
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER}), "
+        fi
+      fi
+    done
+  fi
+fi
+
+IFS="${OLD_IFS}"
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
+    ;;
+esac
+
+exit $ERR_CODE
