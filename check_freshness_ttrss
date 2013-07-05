@@ -33,7 +33,7 @@ else
         [ -z "$LOCAL_VER" ] && [ -z "$LOCAL_VER2" ] && continue || [ -z "$LOCAL_VER" ] && LOCAL_VER=$LOCAL_VER2
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL
-          ERR_MSG="${ERR_MSG}${LOCAL_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
+          ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} is not up to date (${LOCAL_VER} vs. ${UPSTREAM_VER}), "
         fi
       fi
     done
