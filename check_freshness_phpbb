@@ -37,6 +37,8 @@ else
   fi
 fi
 
+IFS="${OLD_IFS}"
+
 case $ERR_CODE in
   $STATE_OK)
     echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
