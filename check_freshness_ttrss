@@ -26,7 +26,7 @@ else
   else
     for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name functions.php -print \)); do
       LOCAL_DIR=$(dirname "$file" | sed 's#/include##g')
-      if grep -q 'http://tt-rss.org/version.php' "$file"; then
+      if grep -q 'http://tt-rss.org/version.php' "$file" || grep -q 'http://tt-rss.org/releases.rss' "$file"; then
         dirname "$file" | grep -q '\.bu' && continue
         LOCAL_VER=$(grep "define('VERSION" "${LOCAL_DIR}/include/version.php" 2>/dev/null | head -n1 | cut -d "'" -f 4)
         LOCAL_VER2=$(grep "define('VERSION" "${LOCAL_DIR}/version.php" 2>/dev/null | head -n1 | cut -d '"' -f 2)
