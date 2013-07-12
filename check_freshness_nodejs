@@ -14,8 +14,8 @@ if [ -z "$NODEJS_BIN" ]; then
   ERR_MSG="Could not find local ${SOFTWARE_NAME}!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -s http://nodejs.org/download/ | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' -e 's/^ *//g' -e 's/ $//g' | cut -d ' ' -f 3)
-  LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null)"
+  UPSTREAM_VER=$(curl -s http://nodejs.org/download/ | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' -e 's/^ *//g' -e 's/ $//g' | cut -d ' ' -f 3 | sed -e 's/^v//')
+  LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null | sed -e 's/^v//')"
 
   if [ -z "$LOCAL_VER" ]; then
     ERR_MSG="Could not get local version!"
@@ -25,7 +25,8 @@ else
     ERR_CODE=$STATE_UNKNOWN
   else
     if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
-      ERR_MSG="${NODEJS_BIN} (${LOCAL_VER})"
+      LOCAL_DIR="$(dirname ${NODEJS_BIN})"
+      ERR_MSG="${NODEJS_BIN##$LOCAL_DIR} (${LOCAL_VER})"
       ERR_CODE=$STATE_CRITICAL
     fi
   fi
