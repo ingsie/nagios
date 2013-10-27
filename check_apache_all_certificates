@@ -1,0 +1,95 @@
+#! /usr/bin/env bash
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i WARNING_LIMIT=1209600
+declare -i CRITICAL_LIMIT=86400
+
+declare -i ERR_CODE=$STATE_OK
+
+declare -a VERIFY_WHITELIST=()
+
+for arg in "$@"; do
+  if [[ "$arg" =~ ^--no-verify= ]]; then
+    VERIFY_WHITELIST+="${arg#--no-verify=}"
+  fi
+done
+
+if ! which openssl >/dev/null 2>&1; then
+  ERR_MSG="OpenSSL not found!"
+  ERR_CODE=$STATE_UNKNOWN
+else
+  DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/port 443 namevhost / { print $4 }')"
+  ERR_MSG=""
+  for DOMAIN in $DOMAINS; do
+    DOM_MSG=""
+    TMP_FILE="$(mktemp --tmpdir check_cert.XXXXXXXXXX)"
+
+    VERIFIED="$(openssl s_client -connect "$DOMAIN":443 -servername "$DOMAIN" -CApath /etc/ssl/certs < /dev/null 2>/dev/null | \
+      awk '
+      BEGIN {cert=0}
+      /^ *Verify return code:/ { print > "/dev/stderr" }
+      /^-----BEGIN CERTIFICATE-----$/ { cert=1 }
+      { if(cert==1) print }
+      /^-----END CERTIFICATE-----$/ { cert=0 } ' 3>&1 1>"$TMP_FILE" 2>&3)"
+
+    SSL_CHECK_OUTPUT="$(openssl x509 -enddate -noout < "$TMP_FILE")"
+
+    if ! openssl x509 -checkend $CRITICAL_LIMIT -noout < "$TMP_FILE" ; then
+      ERR_CODE=$STATE_CRITICAL
+
+      DOM_MSG="$SSL_CHECK_OUTPUT"
+    elif ! openssl x509 -checkend $WARNING_LIMIT -noout < "$TMP_FILE" ; then
+      if [ $ERR_CODE -ne $STATE_CRITICAL ]; then
+        ERR_CODE=$STATE_WARNING
+      fi
+
+      DOM_MSG="$SSL_CHECK_OUTPUT"
+    fi
+
+    if [ "${VERIFIED##*Verify return code: }" != "0 (ok)" ]; then
+      VERIFY=true
+      for WHITELISTED in "${VERIFY_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          VERIFY=false
+          break
+        fi
+      done
+      if $VERIFY; then
+        DOM_MSG="${DOM_MSG} - unable to verify: ${VERIFIED}"
+
+        if [ $ERR_CODE -ne $STATE_CRITICAL ]; then
+          ERR_CODE=$STATE_WARNING
+        fi
+      fi
+    fi
+
+    if [ -n "$DOM_MSG" ]; then
+      ERR_MSG="${ERR_MSG}${DOMAIN}: ${DOM_MSG}, "
+    fi
+
+    rm "$TMP_FILE"
+  done
+fi
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: all local certificates are fresh"
+    ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: $ERR_MSG"
+    ;;
+  $STATE_WARNING)
+    echo "WARNING: $ERR_MSG" | sed 's/, $//'
+    ;;
+  $STATE_CRITICAL)
+    echo "ERROR: $ERR_MSG" | sed 's/, $//'
+    ;;
+esac
+
+exit $ERR_CODE
