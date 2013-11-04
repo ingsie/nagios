@@ -9,29 +9,42 @@ declare -i ERR_CODE=$STATE_OK
 declare -i HOSTS=0
 declare -i HOSTS_UP=0
 
-IP_BIN="$(which ip)"
-declare -a EXCLUDES
+declare -a INTERFACE_WHITELIST
 
-[ -f /etc/nagios/check_peering_ping.cfg ] && . /etc/nagios/check_peering_ping.cfg
+IP_BIN="$(which ip)"
+
+for ARG in "$@"; do
+  if [[ "$ARG" =~ ^--no-check= ]]; then
+    INTERFACE_WHITELIST+=("${ARG#--no-check=}")
+  fi
+done
 
 for INTERFACE in $($IP_BIN -o addr show | grep 'inet ' | grep ' peer ' | awk '{ print $2 }'); do
-    [[ "$(declare -p EXCLUDES)" =~ '['([0-9]+)']="'$INTERFACE'"' ]] && continue
+  VERIFY=true
+  for WHITELISTED in "${INTERFACE_WHITELIST[@]}"; do
+    if [ "$WHITELISTED" = "$INTERFACE" ]; then
+      VERIFY=false
+      break
+    fi
+  done
 
+  if $VERIFY; then
     HOSTS=$(($HOSTS+1))
     IP_ADDRESS="$($IP_BIN -o addr show dev $INTERFACE | grep 'inet ' | awk '{ print $6 }' | awk -F'/' '{ print $1 }')"
 
     if ! ping -W4 -c2 "$IP_ADDRESS" >/dev/null 2>&1; then
       ERR_CODE=$STATE_CRITICAL
-      ERR_MSG="${ERR_MSG}${INTERFACE} "
+      ERR_MSG="${ERR_MSG}${INTERFACE}, "
     else
       HOSTS_UP=$(($HOSTS_UP+1))
     fi
+  fi
 done
 
 if [ $ERR_CODE -eq $STATE_OK ]; then
   echo "OK: $HOSTS_UP of $HOSTS peerings are up"
 else
-  echo "ERROR: $ERR_MSG" | sed 's/ $//g'
+  echo "ERROR: $ERR_MSG" | sed 's/, $//'
 fi
 
 exit $ERR_CODE

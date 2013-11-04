@@ -13,14 +13,13 @@ SOFTWARE_NAME="MediaWiki"
 SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
-IFS="
-${IFS}"
+IFS=$'\n'
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=( $( curl -s https://www.mediawiki.org/wiki/Download | grep 'download:' | grep mbox-text-span | cut -d ' ' -f 3 ) )
+  UPSTREAM_VER=( $(curl -s https://www.mediawiki.org/wiki/Download | grep 'download:' | grep 'mbox-text-span' | cut -d' ' -f3) )
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"

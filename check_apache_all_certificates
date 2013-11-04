@@ -12,11 +12,11 @@ declare -i CRITICAL_LIMIT=86400
 
 declare -i ERR_CODE=$STATE_OK
 
-declare -a VERIFY_WHITELIST=()
+declare -a VERIFY_WHITELIST
 
-for arg in "$@"; do
-  if [[ "$arg" =~ ^--no-verify= ]]; then
-    VERIFY_WHITELIST+="${arg#--no-verify=}"
+for ARG in "$@"; do
+  if [[ "$ARG" =~ ^--no-verify= ]]; then
+    VERIFY_WHITELIST+=("${ARG#--no-verify=}")
   fi
 done
 
@@ -26,6 +26,7 @@ if ! which openssl >/dev/null 2>&1; then
 else
   DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/port 443 namevhost / { print $4 }')"
   ERR_MSG=""
+
   for DOMAIN in $DOMAINS; do
     DOM_MSG=""
     TMP_FILE="$(mktemp --tmpdir check_cert.XXXXXXXXXX)"
@@ -61,7 +62,11 @@ else
         fi
       done
       if $VERIFY; then
-        DOM_MSG="${DOM_MSG} - unable to verify: ${VERIFIED}"
+        if [ -n "${DOM_MSG}" ]; then
+          DOM_MSG="${DOM_MSG} - "
+        fi
+
+        DOM_MSG="${DOM_MSG}unable to verify: ${VERIFIED##*Verify return code: }"
 
         if [ $ERR_CODE -ne $STATE_CRITICAL ]; then
           ERR_CODE=$STATE_WARNING
@@ -73,7 +78,7 @@ else
       ERR_MSG="${ERR_MSG}${DOMAIN}: ${DOM_MSG}, "
     fi
 
-    rm "$TMP_FILE"
+    rm -f "$TMP_FILE"
   done
 fi
 

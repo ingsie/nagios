@@ -11,8 +11,7 @@ SOFTWARE_NAME="WordPress"
 SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
-IFS="
-"
+IFS=$'\n'
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
@@ -26,7 +25,7 @@ else
   else
     for file in $(find ${SEARCH_DIR} \( -type d -name '*.bu' -prune \) -o \( -type f -name wp-config.php -print \)); do
       LOCAL_DIR=$(dirname "$file")
-      if grep -q '^\$wp_version' ${LOCAL_DIR}/wp-includes/version.php; then
+      if [ -f "${LOCAL_DIR}/wp-includes/version.php" ] && grep -q '^\$wp_version' ${LOCAL_DIR}/wp-includes/version.php; then
         LOCAL_VER=$(grep '^\$wp_version' ${LOCAL_DIR}/wp-includes/version.php | cut -d "'" -f 2)
         if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
           ERR_CODE=$STATE_CRITICAL

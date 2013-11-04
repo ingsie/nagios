@@ -11,8 +11,8 @@ SOFTWARE_NAME="CMS Made Simple"
 SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
-IFS="
-"
+IFS=$'\n'
+IFS="${IFS}${OLD_IFS}"
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"

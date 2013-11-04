@@ -13,8 +13,7 @@ SOFTWARE_NAME="Joomla"
 SEARCH_DIR="$1"
 
 OLD_IFS="${IFS}"
-IFS="
-"
+IFS=$'\n'
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
