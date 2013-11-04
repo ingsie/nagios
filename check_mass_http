@@ -1,0 +1,104 @@
+#! /usr/bin/env bash
+
+set -e
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+declare -i STATE_DEPENDENT=4
+
+declare -i ERR_CODE=${STATE_UNKNOWN}
+
+declare -i PROBLEMS=0
+
+declare -a NO_IPV4_WHITELIST
+declare -a NO_IPV6_WHITELIST
+declare -a HTTP_WHITELIST
+
+CHECK_HTTP="/usr/lib/nagios/plugins/check_http"
+CHECK_HTTP_OPTS=""
+
+declare -i ret=0
+ERR_MSG=""
+
+for ARG in "$@"; do
+  if [[ "$ARG" =~ ^--no-ipv4= ]]; then
+    NO_IPV4_WHITELIST+=("${ARG#--no-ipv4=}")
+  elif [[ "$ARG" =~ ^--no-ipv6= ]]; then
+    NO_IPV6_WHITELIST+=("${ARG#--no-ipv6=}")
+  elif [[ "$ARG" =~ ^--allow-all= ]]; then
+    HTTP_WHITELIST+=("${ARG#--allow-all=}")
+  fi
+done
+
+DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }')"
+for DOMAIN in $DOMAINS; do
+  for IP_VERSION in 4 6; do
+    VERIFY=true
+
+    if [ $IP_VERSION -eq 4 ]; then
+      for WHITELISTED in "${NO_IPV4_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          VERIFY=false
+          break
+        fi
+      done
+    else
+      for WHITELISTED in "${NO_IPV6_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          VERIFY=false
+          break
+        fi
+      done
+    fi
+
+    if $VERIFY; then
+      set +e
+      DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN})"
+      ret=$?
+      set -e
+
+      if [ ${ret} -eq 0 ]; then
+        # no problem
+        true
+      elif [ ${ret} -eq 1 ]; then
+        PROBLEMS=$((${PROBLEMS}+1))
+        [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN} (IPv${IP_VERSION}): ${DOM_MSG}"
+        if [ ${ERR_CODE} -eq 0 ]; then
+          ERR_CODE=${ret}
+        elif [ ${ERR_CODE} -gt 2 ]; then
+          ERR_CODE=${ret}
+        fi
+      elif [ ${ret} -eq 2 ]; then
+        PROBLEMS=$((${PROBLEMS}+1))
+        [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN} (IPv${IP_VERSION}): ${DOM_MSG}"
+        ERR_CODE=${ret}
+      elif [ ${ret} -eq 3 ]; then
+        PROBLEMS=$((${PROBLEMS}+1))
+        [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN} (IPv${IP_VERSION}): ${DOM_MSG}"
+        if [ ${ERR_CODE} -eq 0 ]; then
+          ERR_CODE=${ret}
+        fi
+      elif [ ${ret} -eq 4 ]; then
+        PROBLEMS=$((${PROBLEMS}+1))
+        [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN} (IPv${IP_VERSION}): ${DOM_MSG}"
+        if [ ${ERR_CODE} -eq 0 ]; then
+          ERR_CODE=${ret}
+        fi
+      else
+        PROBLEMS=$((${PROBLEMS}+1))
+        ERR_MSG="${ERR_MSG}\nGot unknown return value ${ret} for domain ${DOMAIN}"
+        [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN} (IPv${IP_VERSION}): ${DOM_MSG}"
+      fi
+    fi
+  done
+done
+
+if [ ${PROBLEMS} -eq 0 ]; then
+  ERR_CODE=${STATE_OK}
+fi
+
+ERR_MSG="Found ${PROBLEMS} problems${ERR_MSG}"
+echo -e ${ERR_MSG}
+exit ${ERR_CODE}
