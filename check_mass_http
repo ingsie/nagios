@@ -9,44 +9,53 @@ declare -i STATE_UNKNOWN=3
 declare -i STATE_DEPENDENT=4
 
 declare -i ERR_CODE=${STATE_UNKNOWN}
+declare ERR_MSG
 
 declare -i PROBLEMS=0
 
-declare -a NO_IPV4_WHITELIST
-declare -a NO_IPV6_WHITELIST
-declare -a HTTP_WHITELIST
+declare -a WHITELIST_IPV4
+declare -a WHITELIST_IPV6
+declare -a WHITELIST_HTTP
 
-CHECK_HTTP="/usr/lib/nagios/plugins/check_http"
-CHECK_HTTP_OPTS=""
+declare CHECK_HTTP="/usr/lib/nagios/plugins/check_http"
+declare CHECK_HTTP_OPTS=""
 
 declare -i ret=0
-ERR_MSG=""
+
+declare WEBSERVER="apache"
 
 for ARG in "$@"; do
   if [[ "$ARG" =~ ^--no-ipv4= ]]; then
-    NO_IPV4_WHITELIST+=("${ARG#--no-ipv4=}")
+    WHITELIST_IPV4+=("${ARG#--no-ipv4=}")
   elif [[ "$ARG" =~ ^--no-ipv6= ]]; then
-    NO_IPV6_WHITELIST+=("${ARG#--no-ipv6=}")
+    WHITELIST_IPV6+=("${ARG#--no-ipv6=}")
   elif [[ "$ARG" =~ ^--allow-all= ]]; then
-    HTTP_WHITELIST+=("${ARG#--allow-all=}")
+    WHITELIST_HTTP+=("${ARG#--allow-all=}")
+  elif [[ "$ARG" =~ ^--webserver= ]]; then
+    WEBSERVER="${ARG#--webserver=}"
   fi
 done
 
-DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }')"
+if [ "$WEBSERVER" = "lighttpd" ]; then
+  DOMAINS="$(lighttpd -p -f /etc/lighttpd/lighttpd.conf | grep '$HTTP\["host"\] == ' | cut -d'"' -f4 | sort -u)"
+else
+  DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }')"
+fi
+
 for DOMAIN in $DOMAINS; do
   for IP_VERSION in 4 6; do
     VERIFY=true
     HTTP_VERIFY=true
 
     if [ $IP_VERSION -eq 4 ]; then
-      for WHITELISTED in "${NO_IPV4_WHITELIST[@]}"; do
+      for WHITELISTED in "${WHITELIST_IPV4[@]}"; do
         if [ "$WHITELISTED" = "$DOMAIN" ]; then
           VERIFY=false
           break
         fi
       done
     else
-      for WHITELISTED in "${NO_IPV6_WHITELIST[@]}"; do
+      for WHITELISTED in "${WHITELIST_IPV6[@]}"; do
         if [ "$WHITELISTED" = "$DOMAIN" ]; then
           VERIFY=false
           break
@@ -55,7 +64,7 @@ for DOMAIN in $DOMAINS; do
     fi
 
     if $VERIFY; then
-      for WHITELISTED in "${HTTP_WHITELIST[@]}"; do
+      for WHITELISTED in "${WHITELIST_HTTP[@]}"; do
         if [ "$WHITELISTED" = "$DOMAIN" ]; then
           HTTP_VERIFY=false
           break
