@@ -36,6 +36,7 @@ DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }')"
 for DOMAIN in $DOMAINS; do
   for IP_VERSION in 4 6; do
     VERIFY=true
+    HTTP_VERIFY=true
 
     if [ $IP_VERSION -eq 4 ]; then
       for WHITELISTED in "${NO_IPV4_WHITELIST[@]}"; do
@@ -54,10 +55,24 @@ for DOMAIN in $DOMAINS; do
     fi
 
     if $VERIFY; then
-      set +e
-      DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN})"
-      ret=$?
-      set -e
+      for WHITELISTED in "${HTTP_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          HTTP_VERIFY=false
+          break
+        fi
+      done
+
+      if $HTTP_VERIFY; then
+        set +e
+        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN})"
+        ret=$?
+        set -e
+      else
+        set +e
+        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN} -e 'HTTP/1.')"
+        ret=$?
+        set -e
+      fi
 
       if [ ${ret} -eq 0 ]; then
         # no problem
