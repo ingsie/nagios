@@ -21,9 +21,7 @@ JABBER_SERVER="$(hostname -f)"
 for ARG in "$@"; do
   if [[ "$ARG" =~ ^--no-verify= ]]; then
     VERIFY_WHITELIST+=("${ARG#--no-verify=}")
-  fi
-
-  if [[ "$ARG" =~ ^--no-verify$ ]]; then
+  elif [[ "$ARG" =~ ^--no-verify$ ]]; then
     NO_VERIFY=1
     break
   fi

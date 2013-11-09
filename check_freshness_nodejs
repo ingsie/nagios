@@ -8,7 +8,12 @@ declare -i STATE_UNKNOWN=3
 declare -i ERR_CODE=$STATE_OK
 
 SOFTWARE_NAME="node.js"
-[ -n "$1" ] && NODEJS_BIN="$1" || NODEJS_BIN="$(which node)"
+
+if [ -n "$1" ]; then
+  NODEJS_BIN="$1"
+else
+  NODEJS_BIN="$(which node)"
+fi
 
 if [ -z "$NODEJS_BIN" ]; then
   ERR_MSG="Could not find local ${SOFTWARE_NAME}!"
