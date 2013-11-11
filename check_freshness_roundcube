@@ -17,7 +17,7 @@ if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -s http://roundcube.net | grep 'Download now' | grep -o '<a .*href=.*download.*>' | sed -r 's#^.*<a (.*)>([^<]+)</a>.*$#\2#' | awk '{ print $2 }')
+  UPSTREAM_VER=$(curl -f http://roundcube.net 2>/dev/null | grep 'Download now' | grep -o '<a .*href=.*download.*>' | sed -r 's#^.*<a (.*)>([^<]+)</a>.*$#\2#' | awk '{ print $2 }')
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"

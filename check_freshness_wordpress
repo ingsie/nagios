@@ -17,7 +17,7 @@ if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -s http://api.wordpress.org/core/version-check/1.5/ | head -n4 | tail -n1)
+  UPSTREAM_VER=$(curl -f http://api.wordpress.org/core/version-check/1.5/ 2>/dev/null | head -n4 | tail -n1)
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"

@@ -8,7 +8,6 @@ declare -i STATE_UNKNOWN=3
 declare -i ERR_CODE=$STATE_OK
 
 SOFTWARE_NAME="node.js"
-
 if [ -n "$1" ]; then
   NODEJS_BIN="$1"
 else
@@ -19,7 +18,7 @@ if [ -z "$NODEJS_BIN" ]; then
   ERR_MSG="Could not find local ${SOFTWARE_NAME}!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -s http://nodejs.org/download/ | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' -e 's/^ *//g' -e 's/ $//g' | cut -d ' ' -f 3 | sed -e 's/^v//')
+  UPSTREAM_VER=$(curl -f http://nodejs.org/download/ 2>/dev/null | grep 'Current version:' | sed -e 's/<[a-zA-Z\/][^>]*>//g' -e 's/^ *//g' -e 's/ $//g' | cut -d ' ' -f 3 | sed -e 's/^v//')
   LOCAL_VER="$(${NODEJS_BIN} -v 2>/dev/null | sed -e 's/^v//')"
 
   if [ -z "$LOCAL_VER" ]; then
