@@ -20,7 +20,7 @@ if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=( $( curl -f https://www.mediawiki.org/wiki/Download 2>/dev/null | grep 'download:' | grep mbox-text-span | cut -d ' ' -f 3 ) )
+  UPSTREAM_VER=( $( curl -f https://www.mediawiki.org/wiki/Download 2>/dev/null | grep 'download' | grep 'mbox-text-span' | cut -d ' ' -f 3 ) )
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"
