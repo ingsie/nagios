@@ -20,23 +20,27 @@ if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=( $(curl -f http://update.joomla.org/core/list.xml 2>/dev/null | grep -oP '(?<= version=")[^"]*' | uniq) )
+  UPSTREAM_VER=( $(curl -f http://update.joomla.org/core/list.xml 2>/dev/null | grep -oP '(?<= version=")[^"]*' | sort -n | uniq) )
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"
     ERR_CODE=$STATE_UNKNOWN
   else
     for file in $(find ${SEARCH_DIR} -type d -name '*.bu' -prune -o \( -path '*/libraries/joomla/*' -o -path '*/libraries/cms/version*' -o -path '*/includes/*' \) -type f -name version.php -print); do
-      LOCAL_DIR=$(dirname "$file" | sed -e 's#/libraries/joomla##g' -e 's#/libraries/cms/version##g' -e 's#/includes##g')
+      LOCAL_DIR="$(dirname "$file" | sed -e 's#/libraries/joomla##g' -e 's#/libraries/cms/version##g' -e 's#/includes##g')"
       grep -q 'Joomla' "$file" || continue
       if grep -q 'RELEASE' "$file"; then
-        LOCAL_VER=$(grep '\$RELEASE' "$file" | cut -d "'" -f 2).$(grep '\$DEV_LEVEL' "$file" | cut -d "'" -f 2)
-        LOCAL_MAJ_VER=$(echo "$LOCAL_VER" | cut -d '.' -f 1-2)
+        LOCAL_VER="$(grep '\$RELEASE' "$file" | cut -d "'" -f 2).$(grep '\$DEV_LEVEL' "$file" | cut -d "'" -f 2)"
+        LOCAL_MAJ_VER="$(echo "$LOCAL_VER" | cut -d '.' -f 1-2)"
 
-        echo "${UPSTREAM_VER[*]}" | grep -q $LOCAL_VER && continue
+        if grep -q "$LOCAL_VER" <<< "${UPSTREAM_VER[*]}"; then
+          continue
+        fi
 
-        UP_VER=$(echo "${UPSTREAM_VER[*]}" | grep $LOCAL_MAJ_VER)
-        [ -z $UP_VER ] && UP_VER=$(echo "${UPSTREAM_VER[*]}" | head -n1)
+        UP_VER="$(grep $LOCAL_MAJ_VER <<< "${UPSTREAM_VER[*]}")"
+        if [ -z "$UP_VER" ]; then
+          UP_VER="$(head -n1 <<< "${UPSTREAM_VER[*]}")"
+        fi
 
         ERR_CODE=$STATE_CRITICAL
         ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER} vs. ${UP_VER}), "
