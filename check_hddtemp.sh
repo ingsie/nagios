@@ -37,7 +37,7 @@ function check_arg() {
 
 function check_device() {
 	# make sure device is a special block
-	if [ ! -b $DEVICE ];then
+	if [ ! -b "$DEVICE" ];then
 		echo "UNKNOWN: $DEVICE is not a block special file"
 		exit $STATE_UNKNOWN
 	fi
@@ -62,7 +62,14 @@ function get_hddtemp() {
 	# gets temperature and stores it in $HEAT
 	# and make sure we get a numeric output
 	if [ -x $HDDTEMP ];then
-		HEAT=$($HDDTEMP $DEVICE -n 2>/dev/null)
+		INTERFACE="sat"
+		case "$DEVICE" in
+		*:*)
+			INTERFACE="$(echo "$DEVICE" | cut -d: -f1)"
+			DEVICE="$(echo "$DEVICE" | cut -d: -f2)"
+			;;
+		esac
+		HEAT="$($HDDTEMP -d "$INTERFACE" -A "$DEVICE" | awk '/Temperature_Celsius/ && ! / 0$/ { print $10 }')"
 		case "$HEAT" in
 		[0-9]* )
 			echo "do nothing" > /dev/null
@@ -79,25 +86,24 @@ function get_hddtemp() {
 }
 
 function check_heat() {
+	code=$STATE_OK
 	# checks temperature and replies according to $CRIT and $WARN
 	if [ $HEAT -lt $WARN ];then
-		echo "OK: Temperature is below warn treshold ($DEVICE is $HEAT)"
-		exit $STATE_OK
+		echo -n "OK: Temperature is below warn treshold ($DEVICE is $HEAT)"
 	elif [ $HEAT -lt $CRIT ];then
-		echo "WARNING: Temperature is above warn treshold ($DEVICE is $HEAT)"
-		exit $STATE_WARNING
-	elif [ $HEAT -ge $CRIT ];then
-		echo "CRITICAL: Temperature is above crit treshold ($DEVICE is $HEAT)"
-		exit $STATE_CRITICAL
+		echo -n "WARNING: Temperature is above warn treshold ($DEVICE is $HEAT)"
+		code=$STATE_WARNING
 	else
-		echo "UNKNOWN: This error message should never occur, if it does happen anyway, get a new cup of coffee and fix the code :)"
-		exit $STATE_UNKNOWN
+		echo -n "CRITICAL: Temperature is above crit treshold ($DEVICE is $HEAT)"
+		code=$STATE_CRITICAL
 	fi
+	echo "|temperature=$HEAT;$WARN;$CRIT"
+	exit $code
 }
 
 # -- Main -- #
 
-HDDTEMP=/usr/sbin/hddtemp
+HDDTEMP=/usr/sbin/smartctl
 DEVICE=$1
 WARN=$2
 CRIT=$3
