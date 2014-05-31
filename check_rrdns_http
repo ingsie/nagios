@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+declare -i EXPIRE_DATE=0
+
+for ARG in "$@"; do
+  if [[ "$ARG" =~ ^--host= ]]; then
+    HOST_NAME="${ARG#--host=}"
+  fi
+done
+
+if [ -z "$HOST_NAME" ]; then
+  ERR_MSG="No hosts given"
+  ERR_CODE=$STATE_UNKNOWN
+else
+  HOSTS_IP4="$(host ${HOST_NAME} 2>/dev/null | grep ' has address ' | cut -d' ' -f4)"
+  HOSTS_IP6="$(host ${HOST_NAME} 2>/dev/null | grep ' has IPv6 address ' | cut -d' ' -f5)"
+
+  if [ -z "$HOSTS_IP4" -a -z "$HOSTS_IP6" ]; then
+    ERR_MSG="${HOST_NAME} returns no ip addresses"
+    ERR_CODE=$STATE_UNKNOWN
+  else
+    for HOST in $HOSTS_IP4; do
+      if ! /usr/lib/nagios/plugins/check_http -4 -I $HOST -H ${HOST_NAME} -u / >/dev/null 2>&1; then
+        ERR_CODE=1
+        ERR_MSG="${ERR_MSG}$HOST (IPv4) does not respond! "
+      fi
+    done
+
+    for HOST in $HOSTS_IP6; do
+      if ! /usr/lib/nagios/plugins/check_http -6 -I $HOST -H ${HOST_NAME} -u / >/dev/null 2>&1; then
+        ERR_CODE=1
+        ERR_MSG="${ERR_MSG}$HOST (IPv6) does not respond! "
+      fi
+    done
+  fi
+fi
+
+if [ $ERR_CODE -eq $STATE_OK ]; then
+  echo "OK: All hosts responded!"
+else
+  echo "CRITICAL: ${ERR_MSG}"
+fi
+
+exit $ERR_CODE
