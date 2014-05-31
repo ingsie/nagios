@@ -1,0 +1,117 @@
+#! /usr/bin/env bash
+
+set -e
+
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+declare -i STATE_DEPENDENT=4
+
+declare -i ERR_CODE=${STATE_UNKNOWN}
+
+declare -i PROBLEMS=0
+
+declare -a IP4_DNS_WHITELIST
+declare -a IP6_DNS_WHITELIST
+
+CHECK_DNS_IP4_VALID_RESPONSES="-a 37.72.148.168 -a www01.planetcyborg.de."
+CHECK_DNS_IP6_VALID_RESPONSES="-a 2a02:2918:506:101::168 -a www01.planetcyborg.de."
+CHECK_DNS="/usr/local/lib/nagios/plugins/check_dns"
+CHECK_DNS_OPTS=""
+
+declare -i ret=0
+declare -i PROBLEMS=0
+ERR_MSG=""
+
+for ARG in "$@"; do
+  if [[ "$ARG" =~ ^--ignore-ipv4= ]]; then
+    IP4_DNS_WHITELIST+=("${ARG#--ignore-ipv4=}")
+  elif [[ "$ARG" =~ ^--ignore-ipv6= ]]; then
+    IP6_DNS_WHITELIST+=("${ARG#--ignore-ipv6=}")
+  fi
+done
+
+DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }' | sort -u)"
+for DOMAIN in $DOMAINS; do
+  for IP_VERSION in 4 6; do
+    DNS_VERIFY=true
+
+    if [ $IP_VERSION -eq 4 ]; then
+      for WHITELISTED in "${IP4_DNS_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          DNS_VERIFY=false
+          break
+        fi
+      done
+
+      if ! $DNS_VERIFY; then
+        break
+      fi
+
+      set +e
+      DOM_MSG=$(${CHECK_DNS} ${CHECK_DNS_IP4_VALID_RESPONSES} ${CHECK_DNS_OPTS} -H ${DOMAIN})
+      ret=$?
+      set -e
+    else
+      for WHITELISTED in "${IP6_DNS_WHITELIST[@]}"; do
+        if [ "$WHITELISTED" = "$DOMAIN" ]; then
+          DNS_VERIFY=false
+          break
+        fi
+      done
+
+      if ! $DNS_VERIFY; then
+        break
+      fi
+
+      set +e
+      DOM_MSG=$(${CHECK_DNS} ${CHECK_DNS_IP6_VALID_RESPONSES} ${CHECK_DNS_OPTS} -q AAAA -H ${DOMAIN})
+      ret=$?
+      set -e
+    fi
+
+    if [ ${ret} -eq 0 ]; then
+      # no problem
+      true
+    elif [ ${ret} -eq 1 ]; then
+      PROBLEMS=$((${PROBLEMS}+1))
+      [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN}: ${DOM_MSG}"
+      if [ ${ERR_CODE} -eq 0 ]; then
+        ERR_CODE=${ret}
+      elif [ ${ERR_CODE} -gt 2 ]; then
+        ERR_CODE=${ret}
+      fi
+    elif [ ${ret} -eq 2 ]; then
+      PROBLEMS=$((${PROBLEMS}+1))
+      [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN}: ${DOM_MSG}"
+      ERR_CODE=${ret}
+    elif [ ${ret} -eq 3 ]; then
+      PROBLEMS=$((${PROBLEMS}+1))
+      [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN}: ${DOM_MSG}"
+      if [ ${ERR_CODE} -eq 0 ]; then
+        ERR_CODE=${ret}
+      fi
+    elif [ ${ret} -eq 4 ]; then
+      PROBLEMS=$((${PROBLEMS}+1))
+      [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN}: ${DOM_MSG}"
+      if [ ${ERR_CODE} -eq 0 ]; then
+        ERR_CODE=${ret}
+      fi
+    else
+      PROBLEMS=$((${PROBLEMS}+1))
+      ERR_MSG="${ERR_MSG}\nGot unknown return value ${ret} for domain ${DOMAIN}"
+      [ -n "${DOM_MSG}" ] && ERR_MSG="${ERR_MSG}\n${DOMAIN}: ${DOM_MSG}"
+    fi
+  done
+done
+
+if [ ${PROBLEMS} -eq 0 ]; then
+  ERR_CODE=${STATE_OK}
+elif [ ${PROBLEMS} -eq 99 ]; then
+  ERR_MSG=", but a bitch ain't one${ERR_MSG}"
+fi
+
+ERR_MSG="Found ${PROBLEMS} problems${ERR_MSG}"
+echo -e ${ERR_MSG}
+exit ${ERR_CODE}
