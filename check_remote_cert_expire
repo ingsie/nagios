@@ -1,0 +1,103 @@
+#! /usr/bin/env bash
+
+# Checks if a given cert on disk will expire soon
+
+# Copyright 2009 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+set -u
+set -e
+
+# warn if expires within 2 weeks, critical if within a day or already is expired
+WARN_EXPIRE=1209600
+CRIT_EXPIRE=86400
+
+usage() {
+  echo "Usage: $0 [-starttls {smtp|pop3|imap|ftp|xmpp}] [-servername <name>] [-nochain] <host>:<port>" >&2
+  exit 3
+}
+
+if [ $# -eq 0 ]; then
+  usage
+fi
+
+START_TLS=""
+SERVER_NAME=""
+CHECK_CHAIN=1
+
+while [ $# -gt 1 ]; do
+  if [ "$1" = "-starttls" ]; then
+    START_TLS="$2"
+    shift 2
+  elif [ "$1" = "-servername" ]; then
+    SERVER_NAME="$2"
+    shift 2
+  elif [ "$1" = "-nochain" ]; then
+    CHECK_CHAIN=0
+    shift 1
+  else
+    usage "unknown parameter: $1"
+  fi
+done
+HOST_NAME="$1"
+
+TMP_FILE="$(mktemp --tmpdir check_cert.XXXXXXXXXX)"
+
+VERIFIED="$(openssl s_client -connect "$HOST_NAME" ${START_TLS:+-starttls $START_TLS} ${SERVER_NAME:+-servername $SERVER_NAME} -CApath /etc/ssl/certs < /dev/null 2>/dev/null | \
+  awk '
+  BEGIN {cert=0}
+  /^ *Verify return code:/ { print > "/dev/stderr" }
+  /^-----BEGIN CERTIFICATE-----$/ { cert=1 }
+  { if(cert==1) print }
+  /^-----END CERTIFICATE-----$/ { cert=0 } ' 3>&1 1>"$TMP_FILE" 2>&3)"
+VERIFIED="${VERIFIED##*Verify return code: }"
+
+OUTPUT="$(openssl x509 -enddate -noout < "$TMP_FILE")"
+
+if ! openssl x509 -checkend "$CRIT_EXPIRE" -noout < "$TMP_FILE"; then
+  RET_CODE=2
+elif ! openssl x509 -checkend "$WARN_EXPIRE" -noout < "$TMP_FILE"; then
+  RET_CODE=1
+else
+  RET_CODE=0
+fi
+
+if [ "$VERIFIED" != "0 (ok)" -a $CHECK_CHAIN -eq 1 ]; then
+  OUTPUT="${OUTPUT} - Unable to verify: ${VERIFIED}"
+  RET_CODE=1
+fi
+
+rm -f "$TMP_FILE"
+
+case $RET_CODE in
+  0)
+    OUTPUT="OK - ${OUTPUT}"
+  ;;
+  1)
+    OUTPUT="WARNING - ${OUTPUT}"
+  ;;
+  2)
+    OUTPUT="CRITICAL - ${OUTPUT}"
+  ;;
+esac
+
+echo "$OUTPUT"
+exit $RET_CODE

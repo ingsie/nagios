@@ -21,7 +21,7 @@ function usage() {
 
 function check_root() {
 	# make sure script is running as root
-	if [ `whoami` != root ]; then
+	if [ "$(id -u -n)" != "root" ]; then
 		echo "UNKNOWN: please make sure script is running as root"
 		exit $STATE_UNKNOWN
 	fi
@@ -65,8 +65,8 @@ function get_hddtemp() {
 		INTERFACE="sat"
 		case "$DEVICE" in
 		*:*)
-			INTERFACE="$(echo "$DEVICE" | cut -d: -f1)"
-			DEVICE="$(echo "$DEVICE" | cut -d: -f2)"
+			INTERFACE="$(cut -d: -f1 << "$DEVICE")"
+			DEVICE="$(cut -d: -f2 << "$DEVICE")"
 			;;
 		esac
 		HEAT="$($HDDTEMP -d "$INTERFACE" -A "$DEVICE" | awk '/Temperature_Celsius/ && ! / 0$/ { print $10 }')"
