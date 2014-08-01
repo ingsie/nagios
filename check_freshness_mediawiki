@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
@@ -12,7 +14,7 @@ declare -a UPSTREAM_VER
 SOFTWARE_NAME="MediaWiki"
 SEARCH_DIR="$1"
 
-OLD_IFS="${IFS}"
+OLD_IFS="$IFS"
 IFS=$'\n'
 IFS="${IFS}${OLD_IFS}"
 
@@ -20,7 +22,7 @@ if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=( $( curl -f https://www.mediawiki.org/wiki/Download 2>/dev/null | grep 'download' | grep 'mbox-text-span' | cut -d ' ' -f 3 ) )
+  UPSTREAM_VER=( $( curl -f https://www.mediawiki.org/wiki/Download 2>/dev/null | grep 'download' | grep 'mbox-text-span' | cut -d' ' -f3 ) )
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"
@@ -44,18 +46,18 @@ else
   fi
 fi
 
-IFS="${OLD_IFS}"
+IFS="$OLD_IFS"
 
 case $ERR_CODE in
   $STATE_OK)
     echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER[*]})"
-    ;;
+  ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"
-    ;;
+  ;;
   $STATE_CRITICAL)
     echo "ERROR: Not up to date: ${ERR_MSG}" | sed 's/, $//'
-    ;;
+  ;;
 esac
 
 exit $ERR_CODE

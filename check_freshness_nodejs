@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
@@ -39,13 +41,13 @@ fi
 case $ERR_CODE in
   $STATE_OK)
     echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
-    ;;
+  ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"
-    ;;
+  ;;
   $STATE_CRITICAL)
     echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
-    ;;
+  ;;
 esac
 
 exit $ERR_CODE

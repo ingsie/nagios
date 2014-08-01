@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
@@ -10,7 +12,7 @@ declare -i ERR_CODE=$STATE_OK
 SOFTWARE_NAME="Roundcube webmailer"
 SEARCH_DIR="$1"
 
-OLD_IFS="${IFS}"
+OLD_IFS="$IFS"
 IFS=$'\n'
 
 if [ -z "$SEARCH_DIR" ]; then
@@ -45,18 +47,18 @@ else
   fi
 fi
 
-IFS="${OLD_IFS}"
+IFS="$OLD_IFS"
 
 case $ERR_CODE in
   $STATE_OK)
     echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
-    ;;
+  ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"
-    ;;
+  ;;
   $STATE_CRITICAL)
     echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
-    ;;
+  ;;
 esac
 
 exit $ERR_CODE
