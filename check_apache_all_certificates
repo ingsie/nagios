@@ -48,7 +48,7 @@ else
     DOM_MSG=""
     TMP_FILE="$(mktemp --tmpdir check_cert.XXXXXXXXXX)"
 
-    VERIFIED="$(openssl s_client -connect "$DOMAIN":443 -servername "$DOMAIN" -CApath /etc/ssl/certs < /dev/null 2>/dev/null | \
+    VERIFIED="$(openssl s_client -connect localhost:443 -servername "$DOMAIN" -CApath /etc/ssl/certs < /dev/null 2>/dev/null | \
       awk '
       BEGIN {cert=0}
       /^ *Verify return code:/ { print > "/dev/stderr" }

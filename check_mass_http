@@ -71,14 +71,20 @@ for DOMAIN in $DOMAINS; do
         fi
       done
 
+      if [ "${IP_VERSION}" = "4" ]; then
+        IP_ADDRESS="127.0.0.1"
+      else
+        IP_ADDRESS="::1"
+      fi
+
       if $HTTP_VERIFY; then
         set +e
-        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN})"
+        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} -I ${IP_ADDRESS} ${CHECK_HTTP_OPTS} -H ${DOMAIN})"
         ret=$?
         set -e
       else
         set +e
-        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} ${CHECK_HTTP_OPTS} -H ${DOMAIN} -e 'HTTP/1.')"
+        DOM_MSG="$(${CHECK_HTTP} -${IP_VERSION} -I ${IP_ADDRESS} ${CHECK_HTTP_OPTS} -H ${DOMAIN} -e 'HTTP/1.')"
         ret=$?
         set -e
       fi
