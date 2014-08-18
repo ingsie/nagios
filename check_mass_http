@@ -2,6 +2,8 @@
 
 set -e
 
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
 declare -i STATE_CRITICAL=2
