@@ -163,7 +163,7 @@ case $ERR_CODE in
     exit $STATE_OK
   ;;
   1)
-    echo "WARNING${RESULT_PROGA}| $RESULT"
+    echo "WARNING${RESULT_PROGS}| $RESULT"
     exit $STATE_WARNING
   ;;
   2)
