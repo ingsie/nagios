@@ -38,7 +38,7 @@ while read NAME PROTO TABLE STATE SINCE INFO; do
     if [ "$STATE" != 'up' ]; then
         PEERS_DOWN="${PEERS_DOWN}${NAME} "
     fi
-done <<< "$(sudo birdc -r show protocols "\"$PATTERN\"" | tail -n+4)"
+done <<< "$(birdc -r show protocols "\"$PATTERN\"" | tail -n+4)"
 
 if [ -z "$PEERS_DOWN" ]; then
     echo "[OK] ${PEERS_TOTAL} BGP peerings are up"
