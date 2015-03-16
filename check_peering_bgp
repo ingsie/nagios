@@ -25,21 +25,25 @@ set -u
 
 . /usr/lib/nagios/plugins/utils.sh
 
-declare -i totalpeers=0
-declare downpeers=""
-declare pattern="${1:-*}"
+declare -i PEERS_TOTAL=0
+declare PEERS_DOWN=''
+declare PATTERN="${1:-*}"
 
-while read name proto table state since info; do
-    totalpeers=$(($totalpeers + 1))
-    if [ "$state" != "up" ]; then
-        downpeers="${downpeers}${name} "
+while read NAME PROTO TABLE STATE SINCE INFO; do
+    if [ "$PROTO" != 'BGP' ]; then
+      continue
     fi
-done <<< "$(sudo birdc -r show protocols "\"$pattern\""|tail -n+4)"
 
-if [ -z "$downpeers" ]; then
-    echo "[OK] $totalpeers BGP peerings are up"
+    PEERS_TOTAL=$((${PEERS_TOTAL} + 1))
+    if [ "$STATE" != 'up' ]; then
+        PEERS_DOWN="${PEERS_DOWN}${NAME} "
+    fi
+done <<< "$(sudo birdc -r show protocols "\"$PATTERN\"" | tail -n+4)"
+
+if [ -z "$PEERS_DOWN" ]; then
+    echo "[OK] ${PEERS_TOTAL} BGP peerings are up"
     exit $STATE_OK
 else
-    echo -e "[CRITICAL] $downpeers"
+    echo -e "[CRITICAL] ${PEERS_DOWN}"
     exit $STATE_CRITICAL
 fi
