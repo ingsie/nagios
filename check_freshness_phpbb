@@ -9,17 +9,20 @@ declare -i STATE_UNKNOWN=3
 
 declare -i ERR_CODE=$STATE_OK
 
+declare -a UPSTREAM_VER
+
 SOFTWARE_NAME="phpBB"
 SEARCH_DIR="$1"
 
 OLD_IFS="$IFS"
 IFS=$'\n'
+IFS="${IFS}${OLD_IFS}"
 
 if [ -z "$SEARCH_DIR" ]; then
   ERR_MSG="No search directory given!"
   ERR_CODE=$STATE_UNKNOWN
 else
-  UPSTREAM_VER=$(curl -f http://version.phpbb.com/phpbb/30x.txt 2>/dev/null | head -n1)
+  UPSTREAM_VER=( $(curl -f http://version.phpbb.com/phpbb/30x.txt 2>/dev/null | grep -v '^http') )
 
   if [ -z "$UPSTREAM_VER" ]; then
     ERR_MSG="Could not get remote version!"
@@ -29,10 +32,19 @@ else
       LOCAL_DIR="$(dirname $(dirname "$file"))"
       if grep -q "^define('PHPBB_VERSION', " ${LOCAL_DIR}/includes/constants.php; then
         LOCAL_VER=$(grep "^define('PHPBB_VERSION', " ${LOCAL_DIR}/includes/constants.php | cut -d "'" -f 4)
-        if [ "$LOCAL_VER" != "$UPSTREAM_VER" ]; then
-          ERR_CODE=$STATE_CRITICAL
-          ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER}), "
+        LOCAL_MAJ_VER="$(echo "$LOCAL_VER" | cut -d '.' -f 1-2)"
+
+        if grep -q "$LOCAL_VER" <<< "${UPSTREAM_VER[*]}"; then
+          continue
         fi
+
+        UP_VER="$(grep $LOCAL_MAJ_VER <<< "${UPSTREAM_VER[*]}")"
+        if [ -z "$UP_VER" ]; then
+          UP_VER="$(head -n1 <<< "${UPSTREAM_VER[*]}")"
+        fi
+
+        ERR_CODE=$STATE_CRITICAL
+        ERR_MSG="${ERR_MSG}${LOCAL_DIR##$SEARCH_DIR} (${LOCAL_VER} vs. ${UP_VER}), "
       fi
     done
   fi
@@ -42,13 +54,13 @@ IFS="$OLD_IFS"
 
 case $ERR_CODE in
   $STATE_OK)
-    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER})"
+    echo "OK: all local ${SOFTWARE_NAME} are up to date (${UPSTREAM_VER[*]})"
   ;;
   $STATE_UNKNOWN)
     echo "UNKNOWN: $ERR_MSG"
   ;;
   $STATE_CRITICAL)
-    echo "ERROR: Not up to date (${UPSTREAM_VER}): ${ERR_MSG}" | sed 's/, $//'
+    echo "ERROR: Not up to date: ${ERR_MSG}" | sed 's/, $//'
   ;;
 esac
 
