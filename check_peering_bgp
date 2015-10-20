@@ -30,20 +30,20 @@ declare PEERS_DOWN=''
 declare PATTERN="${1:-*}"
 
 while read NAME PROTO TABLE STATE SINCE INFO; do
-    if [ "$PROTO" != 'BGP' ]; then
-      continue
-    fi
+  if [ "$PROTO" != 'BGP' ]; then
+    continue
+  fi
 
-    PEERS_TOTAL=$((${PEERS_TOTAL} + 1))
-    if [ "$STATE" != 'up' ]; then
-        PEERS_DOWN="${PEERS_DOWN}${NAME} "
-    fi
+  PEERS_TOTAL=$((${PEERS_TOTAL} + 1))
+  if [ "$STATE" != 'up' ]; then
+    PEERS_DOWN="${PEERS_DOWN}${NAME} "
+  fi
 done <<< "$(birdc -r show protocols "\"$PATTERN\"" | tail -n+4)"
 
 if [ -z "$PEERS_DOWN" ]; then
-    echo "[OK] ${PEERS_TOTAL} BGP peerings are up"
-    exit $STATE_OK
+  echo "[OK] ${PEERS_TOTAL} BGP peerings are up"
+  exit $STATE_OK
 else
-    echo -e "[CRITICAL] ${PEERS_DOWN}"
-    exit $STATE_CRITICAL
+  echo -e "[CRITICAL] ${PEERS_DOWN}"
+  exit $STATE_CRITICAL
 fi

@@ -1,6 +1,5 @@
 #! /usr/bin/env bash
 
-
 set -e
 
 declare -i STATE_OK=0

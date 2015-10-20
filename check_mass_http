@@ -1,31 +1,4 @@
 #! /usr/bin/env bash
-# 2014, Moritz Kaspar Rudert (mortzu) <mr@planetcyborg.de>.
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without modification, are
-# permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this list of
-#   conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice, this list
-#   of conditions and the following disclaimer in the documentation and/or other materials
-#   provided with the distribution.
-#
-# * The names of its contributors may not be used to endorse or promote products derived
-#   from this software without specific prior written permission.
-#
-# * Feel free to send Club Mate to support the work.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
-# OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS
-# AND CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
 
 set -e
 
@@ -46,12 +19,12 @@ declare -a WHITELIST_IPV4
 declare -a WHITELIST_IPV6
 declare -a WHITELIST_HTTP
 
-declare CHECK_HTTP="/usr/lib/nagios/plugins/check_http"
-declare CHECK_HTTP_OPTS=""
+declare CHECK_HTTP='/usr/lib/nagios/plugins/check_http'
+declare CHECK_HTTP_OPTS=''
 
 declare -i ret=0
 
-declare WEBSERVER="apache"
+declare WEBSERVER='apache'
 
 for ARG in "$@"; do
   if [[ "$ARG" =~ ^--no-ipv4= ]]; then
@@ -65,7 +38,7 @@ for ARG in "$@"; do
   fi
 done
 
-if [ "$WEBSERVER" = "lighttpd" ]; then
+if [ "$WEBSERVER" = 'lighttpd' ]; then
   DOMAINS="$(lighttpd -p -f /etc/lighttpd/lighttpd.conf | grep '$HTTP\["host"\] == ' | cut -d'"' -f4 | sort -u)"
 else
   DOMAINS="$(apache2ctl -S 2>/dev/null | awk '/ namevhost / { print $4 }')"
@@ -100,10 +73,10 @@ for DOMAIN in $DOMAINS; do
         fi
       done
 
-      if [ "${IP_VERSION}" = "4" ]; then
-        IP_ADDRESS="127.0.0.1"
+      if [ "${IP_VERSION}" = '4' ]; then
+        IP_ADDRESS='127.0.0.1'
       else
-        IP_ADDRESS="::1"
+        IP_ADDRESS='::1'
       fi
 
       if $HTTP_VERIFY; then
