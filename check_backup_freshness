@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#! /usr/bin/env bash
 
 # Copyright (c) 2013 Jan-Philipp "jplitza" Litza <janphilipp@litza.de>
 #
@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
+declare -i STATE_OK=0
+declare -i STATE_WARNING=1
+declare -i STATE_CRITICAL=2
+declare -i STATE_UNKNOWN=3
+
+declare -i ERR_CODE=$STATE_OK
+
+ERR_MSG=''
 
 BACKUP_DIR="$1"
 WARN_AGE="$2"
@@ -42,7 +46,7 @@ Usage: $(basename $0) <dir> <warn> <crit> [<maxdepth>]
 EOF
 }
 
-if [ "$#" -lt 3 ]; then
+if [ $# -lt 3 ]; then
   usage
   exit $STATE_UNKNOWN
 elif ! [ -e "$BACKUP_DIR" ]; then
@@ -64,16 +68,41 @@ elif [ "$CRIT_AGE" -eq 0 ]; then
 fi
 
 has_files() {
-  find "$BACKUP_DIR" ${MAXDEPTH:+-maxdepth $MAXDEPTH} -mtime "-$1" -printf '#'|grep '#' > /dev/null
+  find "$1" ${MAXDEPTH:+-maxdepth $MAXDEPTH} -mtime "-$2" -printf '#' | grep '#' > /dev/null
 }
 
-if ! has_files "$CRIT_AGE"; then
-  echo "CRITICAL: Newest backup older than ${CRIT_AGE} days"
-  exit $STATE_CRITICAL
-elif ! has_files "$WARN_AGE"; then
-  echo "WARNING: Newest backup older than ${WARN_AGE} days"
-  exit $STATE_WARNING
-else
-  echo "OK: Newest backup not older than ${WARN_AGE} days"
-  exit $STATE_OK
-fi
+for DIR in ${BACKUP_DIR}/*; do
+  # Skip lost+found
+  if [ "$(basename $DIR)" = 'lost+found' -o ! -d "$DIR" ]; then
+    continue
+  fi
+
+  if ! has_files "$DIR" "$CRIT_AGE"; then
+    ERR_MSG="${ERR_MSG}$(basename $DIR) "
+    if [ $ERR_CODE -lt 1 ]; then
+      ERR_CODE=$STATE_CRITICAL
+    fi
+  elif ! has_files "$DIR" "$WARN_AGE"; then
+    ERR_MSG="${ERR_MSG}$(basename $DIR) "
+    if [ $ERR_CODE -lt $STATE_CRITICAL ]; then
+      ERR_CODE=$STATE_WARNING
+    fi
+  fi
+done
+
+case $ERR_CODE in
+  $STATE_OK)
+    echo "OK: Newest backup not older than ${WARN_AGE} days"
+  ;;
+  $STATE_UNKNOWN)
+    echo "UNKNOWN: ${ERR_MSG}"
+  ;;
+  $STATE_WARNING)
+    echo "WARNING: Newest backup older than ${WARN_AGE} days: ${ERR_MSG}"
+  ;;
+  $STATE_CRITICAL)
+    echo "ERROR: Newest backup older than ${CRIT_AGE} days: ${ERR_MSG}"
+  ;;
+esac
+
+exit $ERR_CODE
