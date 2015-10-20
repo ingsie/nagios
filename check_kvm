@@ -29,7 +29,7 @@
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
-declare OUTPUT=""
+declare OUTPUT=''
 
 declare -i STATE_OK=0
 declare -i STATE_WARNING=1
@@ -86,7 +86,7 @@ if [ -n "$LIST" ]; then
     esac
   done
 else
-  echo "Unknown guests!"
+  echo 'Unknown guests!'
   exit ${STATE_UNKNOWN}
 fi
 
